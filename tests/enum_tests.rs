@@ -1,3 +1,5 @@
+#![cfg(feature = "all-devices")]
+
 use ascom_alpaca_core::types::DeviceType;
 
 #[test]

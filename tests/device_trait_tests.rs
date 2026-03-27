@@ -1,3 +1,5 @@
+#![cfg(feature = "all-devices")]
+
 use ascom_alpaca_core::device::Device;
 use ascom_alpaca_core::safety_monitor::SafetyMonitor;
 use ascom_alpaca_core::switch::Switch;

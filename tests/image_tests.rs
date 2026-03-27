@@ -1,3 +1,5 @@
+#![cfg(feature = "camera")]
+
 use ascom_alpaca_core::camera::image::{imagebytes, ImageData};
 
 #[test]

@@ -1,3 +1,5 @@
+#![cfg(feature = "all-devices")]
+
 use ascom_alpaca_core::device::{Device, RegisteredDevice};
 use ascom_alpaca_core::registry::{ClientTracker, DeviceRegistry, TransactionCounter};
 use ascom_alpaca_core::safety_monitor::SafetyMonitor;

@@ -3,13 +3,44 @@ name = "ascom-alpaca-core"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.75"
-description = "Framework-agnostic ASCOM Alpaca protocol types and serialization for Rust"
+description = "Framework-agnostic ASCOM Alpaca protocol types and traits for Rust — all 10 device types, no HTTP framework required"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/nightwatch-astro/ascom-alpaca-core"
-keywords = ["ascom", "alpaca", "astronomy", "astrophotography"]
+documentation = "https://docs.rs/ascom-alpaca-core"
+keywords = ["ascom", "alpaca", "astronomy", "astrophotography", "telescope"]
 categories = ["science", "encoding"]
 readme = "README.md"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+serde_repr = "0.1"
+thiserror = "2"
+
+[dev-dependencies]
+serde_yaml = "0.9"
+
+[features]
+default = ["all-devices"]
+all-devices = [
+    "camera",
+    "cover_calibrator",
+    "dome",
+    "filter_wheel",
+    "focuser",
+    "observing_conditions",
+    "rotator",
+    "safety_monitor",
+    "switch",
+    "telescope",
+]
+camera = []
+cover_calibrator = []
+dome = []
+filter_wheel = []
+focuser = []
+observing_conditions = []
+rotator = []
+safety_monitor = []
+switch = []
+telescope = []

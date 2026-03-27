@@ -153,7 +153,7 @@ pub trait Telescope: Device {
 
     // --- Pulse guiding ---
 
-    fn pulse_guide(&self, _direction: crate::camera::GuideDirection, _duration: i32) -> AlpacaResult<()> {
+    fn pulse_guide(&self, _direction: crate::types::GuideDirection, _duration: i32) -> AlpacaResult<()> {
         Err(AlpacaError::NotImplemented("pulse_guide".into()))
     }
 

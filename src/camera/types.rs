@@ -24,12 +24,5 @@ pub enum SensorType {
     LRGB = 5,
 }
 
-/// Pulse guide direction.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
-#[repr(i32)]
-pub enum GuideDirection {
-    North = 0,
-    South = 1,
-    East = 2,
-    West = 3,
-}
+// GuideDirection is in crate::types since it's shared with Telescope.
+pub use crate::types::GuideDirection;

@@ -193,10 +193,6 @@ fn respond_void(result: Result<(), AlpacaError>, ctx: u32, stx: u32) -> String {
     }
 }
 
-fn param_u32(params: &HashMap<String, String>, key: &str) -> u32 {
-    params.get(key).and_then(|v| v.parse().ok()).unwrap_or(0)
-}
-
 fn param_i32(params: &HashMap<String, String>, key: &str) -> i32 {
     params.get(key).and_then(|v| v.parse().ok()).unwrap_or(0)
 }
@@ -271,6 +267,23 @@ fn dispatch_camera(registry: &DeviceRegistry, num: u32, method: &str, params: &H
             respond_void(dev.start_exposure(duration, light), ctx, stx)
         }
         ("stopexposure", true) => respond_void(dev.stop_exposure(), ctx, stx),
+        ("imagearray" | "imagearrayvariant", false) => {
+            match dev.image_array() {
+                Ok(data) => {
+                    let resp = data.to_response();
+                    serde_json::to_string(&serde_json::json!({
+                        "Type": resp.image_type,
+                        "Rank": resp.rank,
+                        "Value": resp.value,
+                        "ErrorNumber": 0,
+                        "ErrorMessage": "",
+                        "ClientTransactionID": ctx,
+                        "ServerTransactionID": stx,
+                    })).unwrap()
+                }
+                Err(e) => respond_val::<serde_json::Value>(Err(e), ctx, stx),
+            }
+        }
         ("abortexposure", true) => respond_void(dev.abort_exposure(), ctx, stx),
         ("canabortexposure", false) => respond_val(dev.can_abort_exposure(), ctx, stx),
         ("canstopexposure", false) => respond_val(dev.can_stop_exposure(), ctx, stx),
@@ -284,6 +297,17 @@ fn dispatch_camera(registry: &DeviceRegistry, num: u32, method: &str, params: &H
         ("cansetccdtemperature", false) => respond_val(dev.can_set_ccd_temperature(), ctx, stx),
         ("cangetcoolerpower", false) => respond_val(dev.can_get_cooler_power(), ctx, stx),
         ("canpulseguide", false) => respond_val(dev.can_pulse_guide(), ctx, stx),
+        ("pulseguide", true) => {
+            let dir_i = param_i32(params, "direction");
+            let direction = match dir_i {
+                0 => crate::camera::GuideDirection::North,
+                1 => crate::camera::GuideDirection::South,
+                2 => crate::camera::GuideDirection::East,
+                3 => crate::camera::GuideDirection::West,
+                _ => return respond_val::<bool>(Err(AlpacaError::InvalidValue(format!("Unknown guide direction: {dir_i}"))), ctx, stx),
+            };
+            respond_void(dev.pulse_guide(direction, param_i32(params, "duration")), ctx, stx)
+        }
         ("ispulseguiding", false) => respond_val(dev.is_pulse_guiding(), ctx, stx),
         ("percentcompleted", false) => respond_val(dev.percent_completed(), ctx, stx),
         ("readoutmode", false) => respond_val(dev.readout_mode(), ctx, stx),
@@ -305,7 +329,12 @@ fn dispatch_camera(registry: &DeviceRegistry, num: u32, method: &str, params: &H
 
 fn dispatch_switch(registry: &DeviceRegistry, num: u32, method: &str, params: &HashMap<String, String>, is_put: bool, ctx: u32, stx: u32) -> String {
     let dev = match registry.get_switch(num) { Ok(d) => d, Err(_) => return not_implemented_response(method, ctx, stx) };
-    let id = param_u32(params, "id");
+    // Switch ID must be parsed as i32 first — negative IDs are invalid
+    let raw_id = param_i32(params, "id");
+    if raw_id < 0 {
+        return respond_val::<bool>(Err(AlpacaError::InvalidValue(format!("Switch ID {raw_id} is negative"))), ctx, stx);
+    }
+    let id = raw_id as u32;
     match (method, is_put) {
         ("maxswitch", false) => respond_val(dev.max_switch(), ctx, stx),
         ("canwrite", false) => respond_val(dev.can_write(id), ctx, stx),
@@ -319,6 +348,11 @@ fn dispatch_switch(registry: &DeviceRegistry, num: u32, method: &str, params: &H
         ("minswitchvalue", false) => respond_val(dev.min_switch_value(id), ctx, stx),
         ("maxswitchvalue", false) => respond_val(dev.max_switch_value(id), ctx, stx),
         ("switchstep", false) => respond_val(dev.switch_step(id), ctx, stx),
+        ("canasync", false) => respond_val(dev.can_async(id), ctx, stx),
+        ("setasync", true) => respond_void(dev.set_async(id, param_bool(params, "state")), ctx, stx),
+        ("setasyncvalue", true) => respond_void(dev.set_async_value(id, param_f64(params, "value")), ctx, stx),
+        ("cancelasync", true) => respond_void(dev.cancel_async(id), ctx, stx),
+        ("statechangecomplete", false) => respond_val(dev.state_change_complete(id), ctx, stx),
         _ => not_implemented_response(method, ctx, stx),
     }
 }
@@ -446,6 +480,7 @@ fn dispatch_rotator(registry: &DeviceRegistry, num: u32, method: &str, params: &
         ("stepsize", false) => respond_val(dev.step_size(), ctx, stx),
         ("targetposition", false) => respond_val(dev.target_position(), ctx, stx),
         ("halt", true) => respond_void(dev.halt(), ctx, stx),
+        ("move", true) => respond_void(dev.r#move(param_f64(params, "position")), ctx, stx),
         ("moveabsolute", true) => respond_void(dev.move_absolute(param_f64(params, "position")), ctx, stx),
         ("movemechanical", true) => respond_void(dev.move_mechanical(param_f64(params, "position")), ctx, stx),
         ("sync", true) => respond_void(dev.sync(param_f64(params, "position")), ctx, stx),
@@ -454,8 +489,12 @@ fn dispatch_rotator(registry: &DeviceRegistry, num: u32, method: &str, params: &
 }
 
 fn dispatch_telescope(registry: &DeviceRegistry, num: u32, method: &str, params: &HashMap<String, String>, is_put: bool, ctx: u32, stx: u32) -> String {
+    use crate::telescope::{DriveRate, SideOfPier};
+    use crate::types::GuideDirection;
+
     let dev = match registry.get_telescope(num) { Ok(d) => d, Err(_) => return not_implemented_response(method, ctx, stx) };
     match (method, is_put) {
+        // --- Position & coordinates ---
         ("altitude", false) => respond_val(dev.altitude(), ctx, stx),
         ("azimuth", false) => respond_val(dev.azimuth(), ctx, stx),
         ("rightascension", false) => respond_val(dev.right_ascension(), ctx, stx),
@@ -465,24 +504,102 @@ fn dispatch_telescope(registry: &DeviceRegistry, num: u32, method: &str, params:
         ("targetdeclination", false) => respond_val(dev.target_declination(), ctx, stx),
         ("targetdeclination", true) => respond_void(dev.set_target_declination(param_f64(params, "targetdeclination")), ctx, stx),
         ("siderealtime", false) => respond_val(dev.sidereal_time(), ctx, stx),
+
+        // --- Slewing ---
         ("slewing", false) => respond_val(dev.slewing(), ctx, stx),
+        ("slewtocoordinates", true) => respond_void(dev.slew_to_coordinates(param_f64(params, "rightascension"), param_f64(params, "declination")), ctx, stx),
+        ("slewtocoordinatesasync", true) => respond_void(dev.slew_to_coordinates_async(param_f64(params, "rightascension"), param_f64(params, "declination")), ctx, stx),
+        ("slewtoaltaz", true) => respond_void(dev.slew_to_alt_az(param_f64(params, "azimuth"), param_f64(params, "altitude")), ctx, stx),
+        ("slewtoaltazasync", true) => respond_void(dev.slew_to_alt_az_async(param_f64(params, "azimuth"), param_f64(params, "altitude")), ctx, stx),
+        ("slewtotarget", true) => respond_void(dev.slew_to_target(), ctx, stx),
+        ("slewtotargetasync", true) => respond_void(dev.slew_to_target_async(), ctx, stx),
+        ("abortslew", true) => respond_void(dev.abort_slew(), ctx, stx),
+        ("moveaxis", true) => respond_void(dev.move_axis(param_i32(params, "axis"), param_f64(params, "rate")), ctx, stx),
+        ("destinationsideofpier", false) => respond_val(dev.destination_side_of_pier(param_f64(params, "rightascension"), param_f64(params, "declination")), ctx, stx),
+
+        // --- Tracking ---
         ("tracking", false) => respond_val(dev.tracking(), ctx, stx),
         ("tracking", true) => respond_void(dev.set_tracking(param_bool(params, "tracking")), ctx, stx),
         ("trackingrate", false) => respond_val(dev.tracking_rate(), ctx, stx),
+        ("trackingrate", true) => {
+            let rate_i = param_i32(params, "trackingrate");
+            let rate = match rate_i {
+                0 => DriveRate::Sidereal,
+                1 => DriveRate::Lunar,
+                2 => DriveRate::Solar,
+                3 => DriveRate::King,
+                _ => return respond_val::<bool>(Err(AlpacaError::InvalidValue(format!("Unknown tracking rate: {rate_i}"))), ctx, stx),
+            };
+            respond_void(dev.set_tracking_rate(rate), ctx, stx)
+        }
         ("trackingrates", false) => respond_val(dev.tracking_rates(), ctx, stx),
+        ("rightascensionrate", false) => respond_val(dev.right_ascension_rate(), ctx, stx),
+        ("rightascensionrate", true) => respond_void(dev.set_right_ascension_rate(param_f64(params, "rightascensionrate")), ctx, stx),
+        ("declinationrate", false) => respond_val(dev.declination_rate(), ctx, stx),
+        ("declinationrate", true) => respond_void(dev.set_declination_rate(param_f64(params, "declinationrate")), ctx, stx),
+
+        // --- Parking ---
         ("athome", false) => respond_val(dev.at_home(), ctx, stx),
         ("atpark", false) => respond_val(dev.at_park(), ctx, stx),
         ("park", true) => respond_void(dev.park(), ctx, stx),
         ("unpark", true) => respond_void(dev.unpark(), ctx, stx),
+        ("setpark", true) => respond_void(dev.set_park(), ctx, stx),
         ("findhome", true) => respond_void(dev.find_home(), ctx, stx),
-        ("abortslew", true) => respond_void(dev.abort_slew(), ctx, stx),
+
+        // --- Pulse guiding ---
+        ("pulseguide", true) => {
+            let dir_i = param_i32(params, "direction");
+            let direction = match dir_i {
+                0 => GuideDirection::North,
+                1 => GuideDirection::South,
+                2 => GuideDirection::East,
+                3 => GuideDirection::West,
+                _ => return respond_val::<bool>(Err(AlpacaError::InvalidValue(format!("Unknown guide direction: {dir_i}"))), ctx, stx),
+            };
+            respond_void(dev.pulse_guide(direction, param_i32(params, "duration")), ctx, stx)
+        }
+        ("ispulseguiding", false) => respond_val(dev.is_pulse_guiding(), ctx, stx),
+        ("guideraterightascension", false) => respond_val(dev.guide_rate_right_ascension(), ctx, stx),
+        ("guideraterightascension", true) => respond_void(dev.set_guide_rate_right_ascension(param_f64(params, "guideraterightascension")), ctx, stx),
+        ("guideratedeclination", false) => respond_val(dev.guide_rate_declination(), ctx, stx),
+        ("guideratedeclination", true) => respond_void(dev.set_guide_rate_declination(param_f64(params, "guideratedeclination")), ctx, stx),
+
+        // --- Side of pier ---
         ("sideofpier", false) => respond_val(dev.side_of_pier(), ctx, stx),
+        ("sideofpier", true) => {
+            let side_i = param_i32(params, "sideofpier");
+            let side = match side_i {
+                0 => SideOfPier::East,
+                1 => SideOfPier::West,
+                -1 => SideOfPier::Unknown,
+                _ => return respond_val::<bool>(Err(AlpacaError::InvalidValue(format!("Unknown side of pier: {side_i}"))), ctx, stx),
+            };
+            respond_void(dev.set_side_of_pier(side), ctx, stx)
+        }
+
+        // --- Site location ---
         ("siteelevation", false) => respond_val(dev.site_elevation(), ctx, stx),
         ("siteelevation", true) => respond_void(dev.set_site_elevation(param_f64(params, "siteelevation")), ctx, stx),
         ("sitelatitude", false) => respond_val(dev.site_latitude(), ctx, stx),
         ("sitelatitude", true) => respond_void(dev.set_site_latitude(param_f64(params, "sitelatitude")), ctx, stx),
         ("sitelongitude", false) => respond_val(dev.site_longitude(), ctx, stx),
         ("sitelongitude", true) => respond_void(dev.set_site_longitude(param_f64(params, "sitelongitude")), ctx, stx),
+        ("utcdate", false) => respond_val(dev.utc_date(), ctx, stx),
+        ("utcdate", true) => {
+            let utc = params.get("utcdate").cloned().unwrap_or_default();
+            respond_void(dev.set_utc_date(&utc), ctx, stx)
+        }
+
+        // --- Axis rates ---
+        ("axisrates", false) => respond_val(dev.axis_rates(param_i32(params, "axis")), ctx, stx),
+        ("canmoveaxis", false) => respond_val(dev.can_move_axis(param_i32(params, "axis")), ctx, stx),
+
+        // --- Sync ---
+        ("synctocoordinates", true) => respond_void(dev.sync_to_coordinates(param_f64(params, "rightascension"), param_f64(params, "declination")), ctx, stx),
+        ("synctotarget", true) => respond_void(dev.sync_to_target(), ctx, stx),
+        ("synctoaltaz", true) => respond_void(dev.sync_to_alt_az(param_f64(params, "azimuth"), param_f64(params, "altitude")), ctx, stx),
+
+        // --- Capabilities ---
         ("alignmentmode", false) => respond_val(dev.alignment_mode(), ctx, stx),
         ("equatorialsystem", false) => respond_val(dev.equatorial_system(), ctx, stx),
         ("canfindhome", false) => respond_val(dev.can_find_home(), ctx, stx),
@@ -501,7 +618,6 @@ fn dispatch_telescope(registry: &DeviceRegistry, num: u32, method: &str, params:
         ("cansetguiderates", false) => respond_val(dev.can_set_guide_rates(), ctx, stx),
         ("cansetdeclinationrate", false) => respond_val(dev.can_set_declination_rate(), ctx, stx),
         ("cansetrightascensionrate", false) => respond_val(dev.can_set_right_ascension_rate(), ctx, stx),
-        ("ispulseguiding", false) => respond_val(dev.is_pulse_guiding(), ctx, stx),
         ("doesrefraction", false) => respond_val(dev.does_refraction(), ctx, stx),
         ("doesrefraction", true) => respond_void(dev.set_does_refraction(param_bool(params, "doesrefraction")), ctx, stx),
         ("aperturearea", false) => respond_val(dev.aperture_area(), ctx, stx),

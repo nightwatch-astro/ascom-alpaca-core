@@ -11,6 +11,7 @@ pub struct MockRotator {
     mechanical_position: Mutex<f64>,
     target: Mutex<f64>,
     move_start: Mutex<Option<Instant>>,
+    reverse: Mutex<bool>,
 }
 
 impl MockRotator {
@@ -21,6 +22,7 @@ impl MockRotator {
             mechanical_position: Mutex::new(0.0),
             target: Mutex::new(0.0),
             move_start: Mutex::new(None),
+            reverse: Mutex::new(false),
         }
     }
 
@@ -57,7 +59,7 @@ impl Device for MockRotator {
 }
 
 impl Rotator for MockRotator {
-    fn can_reverse(&self) -> AlpacaResult<bool> { Ok(false) }
+    fn can_reverse(&self) -> AlpacaResult<bool> { Ok(true) }
 
     fn is_moving(&self) -> AlpacaResult<bool> {
         let start = *self.move_start.lock().unwrap();
@@ -84,7 +86,8 @@ impl Rotator for MockRotator {
         Ok(*self.position.lock().unwrap())
     }
 
-    fn reverse(&self) -> AlpacaResult<bool> { Ok(false) }
+    fn reverse(&self) -> AlpacaResult<bool> { Ok(*self.reverse.lock().unwrap()) }
+    fn set_reverse(&self, v: bool) -> AlpacaResult<()> { *self.reverse.lock().unwrap() = v; Ok(()) }
     fn step_size(&self) -> AlpacaResult<f64> { Ok(1.0) }
 
     fn target_position(&self) -> AlpacaResult<f64> {
@@ -94,6 +97,15 @@ impl Rotator for MockRotator {
     fn halt(&self) -> AlpacaResult<()> {
         self.check_move_complete();
         *self.move_start.lock().unwrap() = None;
+        Ok(())
+    }
+
+    fn r#move(&self, relative_position: f64) -> AlpacaResult<()> {
+        self.check_move_complete();
+        let current = *self.position.lock().unwrap();
+        let target = (current + relative_position).rem_euclid(360.0);
+        *self.target.lock().unwrap() = target;
+        *self.move_start.lock().unwrap() = Some(Instant::now());
         Ok(())
     }
 

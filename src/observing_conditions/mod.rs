@@ -71,7 +71,7 @@ pub trait ObservingConditions: Device {
     }
 
     /// Returns the time since the sensor was last updated (seconds).
-    fn time_of_latest_update(&self, _property_name: &str) -> AlpacaResult<String> {
+    fn time_of_latest_update(&self, _property_name: &str) -> AlpacaResult<f64> {
         Err(AlpacaError::NotImplemented("time_of_latest_update".into()))
     }
 

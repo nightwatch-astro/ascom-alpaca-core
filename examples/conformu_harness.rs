@@ -3,14 +3,13 @@
 //! Run: `cargo run --example conformu_harness --features conformu`
 //! Then point ConformU at http://127.0.0.1:32888
 
-use std::io::Read;
-
 use ascom_alpaca_core::conformu::dispatch::{parse_device_path, parse_query, AlpacaRequest};
 use ascom_alpaca_core::conformu::management;
 use ascom_alpaca_core::conformu::mocks;
 use ascom_alpaca_core::registry::{DeviceRegistry, TransactionCounter};
 
-use ascom_alpaca_core::camera::Camera;
+use ascom_alpaca_core::camera::{Camera, SensorType};
+use ascom_alpaca_core::conformu::mocks::camera::GainOffsetMode;
 use ascom_alpaca_core::cover_calibrator::CoverCalibrator;
 use ascom_alpaca_core::dome::Dome;
 use ascom_alpaca_core::filter_wheel::FilterWheel;
@@ -25,7 +24,26 @@ fn main() {
     let mut registry = DeviceRegistry::new();
 
     let sm: Box<dyn SafetyMonitor> = Box::new(mocks::safety_monitor::MockSafetyMonitor::new());
-    let cam: Box<dyn Camera> = Box::new(mocks::camera::MockCamera::new());
+    let cam: Box<dyn Camera> = Box::new(mocks::camera::MockCamera::full_featured());
+    let cam_color: Box<dyn Camera> = Box::new(mocks::camera::MockCamera::with_features_and_id(
+        mocks::camera::CameraFeatures {
+            cooler: true,
+            pulse_guide: true,
+            fast_readout: true,
+            asymmetric_bin: true,
+            gain_mode: GainOffsetMode::Named(vec![
+                "Low".into(), "Medium".into(), "High".into(),
+            ]),
+            offset_mode: GainOffsetMode::Named(vec![
+                "Normal".into(), "Low Noise".into(),
+            ]),
+            shutter: true,
+            sub_exposure: true,
+            sensor_type: SensorType::RGGB,
+        },
+        "mock-cam-002",
+        "Mock Color Camera",
+    ));
     let sw: Box<dyn Switch> = Box::new(mocks::switch::MockSwitch::new());
     let cc: Box<dyn CoverCalibrator> = Box::new(mocks::cover_calibrator::MockCoverCalibrator::new());
     let dome: Box<dyn Dome> = Box::new(mocks::dome::MockDome::new());
@@ -37,6 +55,7 @@ fn main() {
 
     registry.register(sm);
     registry.register(cam);
+    registry.register(cam_color);
     registry.register(sw);
     registry.register(cc);
     registry.register(dome);
@@ -48,8 +67,10 @@ fn main() {
 
     let tx_counter = TransactionCounter::new();
 
-    let server = tiny_http::Server::http("127.0.0.1:32888").expect("Failed to bind to port 32888");
-    eprintln!("ConformU test harness listening on http://127.0.0.1:32888");
+    let port = std::env::var("ALPACA_PORT").unwrap_or_else(|_| "32888".to_string());
+    let addr = format!("127.0.0.1:{port}");
+    let server = tiny_http::Server::http(&addr).unwrap_or_else(|e| panic!("Failed to bind to {addr}: {e}"));
+    eprintln!("ConformU test harness listening on http://{addr}");
     eprintln!("Registered {} devices", registry.configured_devices().len());
     eprintln!("Press Ctrl+C to stop");
 

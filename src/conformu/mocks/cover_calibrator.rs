@@ -37,7 +37,16 @@ impl Device for MockCoverCalibrator {
     fn interface_version(&self) -> AlpacaResult<i32> { Ok(2) }
     fn name(&self) -> AlpacaResult<String> { Ok("Mock CoverCalibrator".into()) }
     fn supported_actions(&self) -> AlpacaResult<Vec<String>> { Ok(vec![]) }
-    fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> { Ok(vec![]) }
+    fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> {
+        use crate::device::common::DeviceStateItem;
+        Ok(vec![
+            DeviceStateItem { name: "Brightness".into(), value: serde_json::json!(*self.brightness.lock().unwrap()) },
+            DeviceStateItem { name: "CalibratorState".into(), value: serde_json::json!(*self.calibrator_state.lock().unwrap()) },
+            DeviceStateItem { name: "CoverState".into(), value: serde_json::json!(*self.cover_state.lock().unwrap()) },
+            DeviceStateItem { name: "CalibratorChanging".into(), value: serde_json::json!(false) },
+            DeviceStateItem { name: "CoverMoving".into(), value: serde_json::json!(false) },
+        ])
+    }
 }
 
 impl CoverCalibrator for MockCoverCalibrator {

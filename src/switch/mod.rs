@@ -65,4 +65,31 @@ pub trait Switch: Device {
     fn switch_step(&self, _id: u32) -> AlpacaResult<f64> {
         Err(AlpacaError::NotImplemented("switch_step".into()))
     }
+
+    // --- ISwitchV3 async methods ---
+
+    /// Returns whether the specified switch supports asynchronous state changes.
+    fn can_async(&self, _id: u32) -> AlpacaResult<bool> {
+        Ok(false)
+    }
+
+    /// Asynchronously sets the boolean state of the specified switch.
+    fn set_async(&self, _id: u32, _state: bool) -> AlpacaResult<()> {
+        Err(AlpacaError::NotImplemented("set_async".into()))
+    }
+
+    /// Asynchronously sets the value of the specified switch.
+    fn set_async_value(&self, _id: u32, _value: f64) -> AlpacaResult<()> {
+        Err(AlpacaError::NotImplemented("set_async_value".into()))
+    }
+
+    /// Cancels an in-progress asynchronous state change on the specified switch.
+    fn cancel_async(&self, _id: u32) -> AlpacaResult<()> {
+        Err(AlpacaError::NotImplemented("cancel_async".into()))
+    }
+
+    /// Returns whether the most recent asynchronous operation on the specified switch has completed.
+    fn state_change_complete(&self, _id: u32) -> AlpacaResult<bool> {
+        Err(AlpacaError::NotImplemented("state_change_complete".into()))
+    }
 }

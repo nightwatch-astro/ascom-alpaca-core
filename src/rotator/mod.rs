@@ -48,6 +48,11 @@ pub trait Rotator: Device {
         Err(AlpacaError::NotImplemented("halt".into()))
     }
 
+    /// Moves the rotator by a relative amount (degrees) from the current position.
+    fn r#move(&self, _position: f64) -> AlpacaResult<()> {
+        Err(AlpacaError::NotImplemented("move".into()))
+    }
+
     /// Moves to the specified position angle (degrees), relative to sync position.
     fn move_absolute(&self, _position: f64) -> AlpacaResult<()> {
         Err(AlpacaError::NotImplemented("move_absolute".into()))

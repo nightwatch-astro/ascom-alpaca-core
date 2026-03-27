@@ -52,41 +52,32 @@ jobs:
   conformu:
     runs-on: ubuntu-latest
     needs: [test, lint]
+    env:
+      CONFORMU_VERSION: "4.2.1"
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "8.0"
 
-      - name: Install ConformU
-        run: dotnet tool install -g ConformU
+      - name: Download ConformU
+        run: |
+          curl -sL "https://github.com/ASCOMInitiative/ConformU/releases/download/v${CONFORMU_VERSION}/conformu-linux-x64-${CONFORMU_VERSION}.tar.gz" \
+            -o conformu.tar.gz
+          tar xzf conformu.tar.gz
+          chmod +x conformu
+          echo "$PWD" >> "$GITHUB_PATH"
 
       - name: Build test harness
-        run: cargo build --example conformu_harness --features conformu
+        run: cargo build --example conformu_harness --features conformu --release
 
       - name: Start test harness
         run: |
-          cargo run --example conformu_harness --features conformu &
+          cargo run --example conformu_harness --features conformu --release &
           HARNESS_PID=$!
           echo "HARNESS_PID=$HARNESS_PID" >> "$GITHUB_ENV"
-          sleep 2
-          # Verify harness is running
+          sleep 3
           curl -sf http://127.0.0.1:32888/management/apiversions || (echo "Harness failed to start" && exit 1)
 
-      - name: ConformU — SafetyMonitor (mandatory gate)
-        run: |
-          conformu conformance "http://127.0.0.1:32888/api/v1/safetymonitor/0" \
-            --results-file conformu-safetymonitor.json \
-            || true
-
-      - name: ConformU — Camera (mandatory gate)
-        run: |
-          conformu conformance "http://127.0.0.1:32888/api/v1/camera/0" \
-            --results-file conformu-camera.json \
-            || true
-
-      - name: ConformU — full sweep (all devices)
+      - name: ConformU — all devices
         run: |
           DEVICES=(
             "safetymonitor/0"
@@ -104,7 +95,8 @@ jobs:
             SLUG=$(echo "$device" | tr '/' '-')
             echo "::group::ConformU — $device"
             conformu conformance "http://127.0.0.1:32888/api/v1/$device" \
-              --results-file "conformu-${SLUG}.json" \
+              --resultsfile "conformu-${SLUG}.json" \
+              --logfilename "conformu-${SLUG}.log" \
               || true
             echo "::endgroup::"
           done
@@ -113,41 +105,70 @@ jobs:
         if: always()
         run: kill $HARNESS_PID 2>/dev/null || true
 
-      - name: Convert results to JUnit XML
+      - name: Convert results to JUnit XML and check for errors
         if: always()
         run: |
-          # Simple JSON→JUnit converter
           python3 - <<'PYEOF'
-          import json, glob, xml.etree.ElementTree as ET
+          import json, glob, sys
+          import xml.etree.ElementTree as ET
 
           root = ET.Element("testsuites")
+          total_errors = 0
+          total_issues = 0
+
           for f in sorted(glob.glob("conformu-*.json")):
               try:
                   data = json.load(open(f))
                   name = f.replace("conformu-", "").replace(".json", "")
-                  suite = ET.SubElement(root, "testsuite", name=name)
+                  error_count = data.get("ErrorCount", 0)
+                  issue_count = data.get("IssueCount", 0)
+                  total_errors += error_count
+                  total_issues += issue_count
 
-                  tests = data.get("results", data.get("Results", []))
-                  if isinstance(tests, list):
-                      passed = sum(1 for t in tests if t.get("outcome", t.get("Outcome", "")) in ("Passed", "OK", "Pass"))
-                      failed = len(tests) - passed
-                      suite.set("tests", str(len(tests)))
-                      suite.set("failures", str(failed))
-                      for t in tests:
-                          tc = ET.SubElement(suite, "testcase",
-                              name=t.get("name", t.get("Name", "unknown")),
-                              classname=name)
-                          outcome = t.get("outcome", t.get("Outcome", ""))
-                          if outcome not in ("Passed", "OK", "Pass"):
-                              fail = ET.SubElement(tc, "failure", message=outcome)
-                              fail.text = t.get("message", t.get("Message", ""))
+                  # Create a test suite per device
+                  suite = ET.SubElement(root, "testsuite",
+                      name=name,
+                      tests=str(error_count + issue_count + 1),
+                      failures=str(error_count))
+
+                  # Add a pass/fail test case for the device
+                  tc = ET.SubElement(suite, "testcase",
+                      name=f"{name}-conformance",
+                      classname=f"conformu.{name}")
+                  if error_count > 0:
+                      fail = ET.SubElement(tc, "failure",
+                          message=f"{error_count} conformance errors")
+                      error_msgs = []
+                      for e in data.get("Errors", []):
+                          error_msgs.append(f"{e['Key']}: {e['Value']}")
+                      fail.text = "\n".join(error_msgs)
+
+                  # Add individual errors as test cases
+                  for e in data.get("Errors", []):
+                      etc = ET.SubElement(suite, "testcase",
+                          name=e["Key"],
+                          classname=f"conformu.{name}.errors")
+                      ef = ET.SubElement(etc, "failure", message="ConformU error")
+                      ef.text = e["Value"]
+
+                  # Add issues as skipped test cases (informational)
+                  for i in data.get("Issues", []):
+                      itc = ET.SubElement(suite, "testcase",
+                          name=i["Key"],
+                          classname=f"conformu.{name}.issues")
+                      ET.SubElement(itc, "skipped", message=i["Value"])
+
+                  print(f"{name}: {error_count} errors, {issue_count} issues")
               except Exception as e:
                   print(f"Warning: Could not parse {f}: {e}")
 
           tree = ET.ElementTree(root)
           ET.indent(tree, space="  ")
           tree.write("conformu-results.xml", xml_declaration=True, encoding="utf-8")
-          print("Wrote conformu-results.xml")
+          print(f"\nTotal: {total_errors} errors, {total_issues} issues")
+          if total_errors > 0:
+              print(f"::error::ConformU found {total_errors} conformance errors")
+              sys.exit(1)
           PYEOF
 
       - name: Upload ConformU results
@@ -157,6 +178,7 @@ jobs:
           name: conformu-results
           path: |
             conformu-*.json
+            conformu-*.log
             conformu-results.xml
 
       - name: Publish test results

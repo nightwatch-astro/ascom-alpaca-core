@@ -3,13 +3,14 @@ use std::time::Instant;
 
 use crate::device::Device;
 use crate::focuser::Focuser;
-use crate::types::{AlpacaError, AlpacaResult, DeviceType};
+use crate::types::{AlpacaResult, DeviceType};
 
 pub struct MockFocuser {
     connected: Mutex<bool>,
     position: Mutex<i32>,
     target: Mutex<i32>,
     move_start: Mutex<Option<Instant>>,
+    temp_comp: Mutex<bool>,
 }
 
 impl MockFocuser {
@@ -19,6 +20,7 @@ impl MockFocuser {
             position: Mutex::new(25000),
             target: Mutex::new(25000),
             move_start: Mutex::new(None),
+            temp_comp: Mutex::new(false),
         }
     }
 
@@ -79,12 +81,13 @@ impl Focuser for MockFocuser {
     }
 
     fn step_size(&self) -> AlpacaResult<f64> { Ok(1.0) }
-    fn temp_comp(&self) -> AlpacaResult<bool> { Ok(false) }
-    fn temp_comp_available(&self) -> AlpacaResult<bool> { Ok(false) }
+    fn temp_comp(&self) -> AlpacaResult<bool> { Ok(*self.temp_comp.lock().unwrap()) }
+    fn temp_comp_available(&self) -> AlpacaResult<bool> { Ok(true) }
     fn temperature(&self) -> AlpacaResult<f64> { Ok(20.0) }
 
-    fn set_temp_comp(&self, _enabled: bool) -> AlpacaResult<()> {
-        Err(AlpacaError::NotImplemented("Temperature compensation is not available".into()))
+    fn set_temp_comp(&self, enabled: bool) -> AlpacaResult<()> {
+        *self.temp_comp.lock().unwrap() = enabled;
+        Ok(())
     }
 
     fn halt(&self) -> AlpacaResult<()> {
@@ -95,12 +98,9 @@ impl Focuser for MockFocuser {
     }
 
     fn r#move(&self, position: i32) -> AlpacaResult<()> {
-        if position < 0 || position > 50000 {
-            return Err(AlpacaError::InvalidValue(format!(
-                "Position {position} out of range 0-50000"
-            )));
-        }
-        *self.target.lock().unwrap() = position;
+        // ASCOM spec: clamp to valid range, don't throw
+        let clamped = position.clamp(0, 50000);
+        *self.target.lock().unwrap() = clamped;
         *self.move_start.lock().unwrap() = Some(Instant::now());
         Ok(())
     }

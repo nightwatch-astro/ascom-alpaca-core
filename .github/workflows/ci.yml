@@ -144,6 +144,7 @@ jobs:
 
   conformu:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: [test, lint, conformu-filter]
     if: needs.conformu-filter.outputs.any_changed == 'true'
     strategy:
@@ -212,7 +213,8 @@ jobs:
               if issues > 0:
                   for i in data.get("Issues", []):
                       print(f"  ISSUE: {i['Key']}: {i['Value']}")
-                  print(f"::warning::ConformU found {issues} issues for {slug}")
+                  print(f"::error::ConformU found {issues} issues for {slug}")
+                  sys.exit(1)
           except Exception as e:
               print(f"::error::Failed to parse results: {e}")
               sys.exit(1)

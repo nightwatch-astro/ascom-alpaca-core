@@ -1,8 +1,8 @@
-pub mod types;
 pub mod image;
+pub mod types;
 
-pub use types::*;
 pub use image::{ImageArrayResponse, ImageData};
+pub use types::*;
 
 use crate::device::Device;
 use crate::types::{AlpacaError, AlpacaResult};
@@ -79,7 +79,9 @@ pub trait Camera: Device {
     }
 
     fn last_exposure_start_time(&self) -> AlpacaResult<String> {
-        Err(AlpacaError::NotImplemented("last_exposure_start_time".into()))
+        Err(AlpacaError::NotImplemented(
+            "last_exposure_start_time".into(),
+        ))
     }
 
     fn exposure_min(&self) -> AlpacaResult<f64> {
@@ -249,11 +251,15 @@ pub trait Camera: Device {
     }
 
     fn set_set_ccd_temperature(&self, _temp: f64) -> AlpacaResult<()> {
-        Err(AlpacaError::NotImplemented("set_set_ccd_temperature".into()))
+        Err(AlpacaError::NotImplemented(
+            "set_set_ccd_temperature".into(),
+        ))
     }
 
     fn can_set_ccd_temperature(&self) -> AlpacaResult<bool> {
-        Err(AlpacaError::NotImplemented("can_set_ccd_temperature".into()))
+        Err(AlpacaError::NotImplemented(
+            "can_set_ccd_temperature".into(),
+        ))
     }
 
     fn can_get_cooler_power(&self) -> AlpacaResult<bool> {
@@ -347,7 +353,9 @@ pub trait Camera: Device {
     }
 
     fn set_sub_exposure_duration(&self, _duration: f64) -> AlpacaResult<()> {
-        Err(AlpacaError::NotImplemented("set_sub_exposure_duration".into()))
+        Err(AlpacaError::NotImplemented(
+            "set_sub_exposure_duration".into(),
+        ))
     }
 
     // --- Capabilities ---

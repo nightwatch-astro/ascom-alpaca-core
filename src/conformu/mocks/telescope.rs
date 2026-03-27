@@ -93,14 +93,13 @@ impl MockTelescope {
                     *self.rate_base_dec.lock().unwrap() = tdec;
                 }
                 // Reset rate tracking origin if rates are active
-                *self.rate_set_at.lock().unwrap() =
-                    if *self.ra_rate.lock().unwrap() != 0.0
-                        || *self.dec_rate.lock().unwrap() != 0.0
-                    {
-                        Some(Instant::now())
-                    } else {
-                        None
-                    };
+                *self.rate_set_at.lock().unwrap() = if *self.ra_rate.lock().unwrap() != 0.0
+                    || *self.dec_rate.lock().unwrap() != 0.0
+                {
+                    Some(Instant::now())
+                } else {
+                    None
+                };
                 *slew = None;
             }
         }
@@ -187,21 +186,57 @@ impl Device for MockTelescope {
     fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> {
         use crate::device::common::DeviceStateItem;
         self.check_slew_complete();
-        let slewing = self.slew_start.lock().unwrap().is_some()
-            || *self.move_axis_active.lock().unwrap();
+        let slewing =
+            self.slew_start.lock().unwrap().is_some() || *self.move_axis_active.lock().unwrap();
         Ok(vec![
-            DeviceStateItem { name: "Altitude".into(), value: serde_json::json!(*self.altitude.lock().unwrap()) },
-            DeviceStateItem { name: "AtHome".into(), value: serde_json::json!(*self.at_home.lock().unwrap()) },
-            DeviceStateItem { name: "AtPark".into(), value: serde_json::json!(*self.at_park.lock().unwrap()) },
-            DeviceStateItem { name: "Azimuth".into(), value: serde_json::json!(*self.azimuth.lock().unwrap()) },
-            DeviceStateItem { name: "Declination".into(), value: serde_json::json!(*self.dec.lock().unwrap()) },
-            DeviceStateItem { name: "IsPulseGuiding".into(), value: serde_json::json!(*self.pulse_guiding.lock().unwrap()) },
-            DeviceStateItem { name: "RightAscension".into(), value: serde_json::json!(*self.ra.lock().unwrap()) },
-            DeviceStateItem { name: "SideOfPier".into(), value: serde_json::json!(0) },
-            DeviceStateItem { name: "SiderealTime".into(), value: serde_json::json!(self.sidereal_time().unwrap_or(0.0)) },
-            DeviceStateItem { name: "Slewing".into(), value: serde_json::json!(slewing) },
-            DeviceStateItem { name: "Tracking".into(), value: serde_json::json!(*self.tracking.lock().unwrap()) },
-            DeviceStateItem { name: "UTCDate".into(), value: serde_json::json!(self.utc_date().unwrap_or_default()) },
+            DeviceStateItem {
+                name: "Altitude".into(),
+                value: serde_json::json!(*self.altitude.lock().unwrap()),
+            },
+            DeviceStateItem {
+                name: "AtHome".into(),
+                value: serde_json::json!(*self.at_home.lock().unwrap()),
+            },
+            DeviceStateItem {
+                name: "AtPark".into(),
+                value: serde_json::json!(*self.at_park.lock().unwrap()),
+            },
+            DeviceStateItem {
+                name: "Azimuth".into(),
+                value: serde_json::json!(*self.azimuth.lock().unwrap()),
+            },
+            DeviceStateItem {
+                name: "Declination".into(),
+                value: serde_json::json!(*self.dec.lock().unwrap()),
+            },
+            DeviceStateItem {
+                name: "IsPulseGuiding".into(),
+                value: serde_json::json!(*self.pulse_guiding.lock().unwrap()),
+            },
+            DeviceStateItem {
+                name: "RightAscension".into(),
+                value: serde_json::json!(*self.ra.lock().unwrap()),
+            },
+            DeviceStateItem {
+                name: "SideOfPier".into(),
+                value: serde_json::json!(0),
+            },
+            DeviceStateItem {
+                name: "SiderealTime".into(),
+                value: serde_json::json!(self.sidereal_time().unwrap_or(0.0)),
+            },
+            DeviceStateItem {
+                name: "Slewing".into(),
+                value: serde_json::json!(slewing),
+            },
+            DeviceStateItem {
+                name: "Tracking".into(),
+                value: serde_json::json!(*self.tracking.lock().unwrap()),
+            },
+            DeviceStateItem {
+                name: "UTCDate".into(),
+                value: serde_json::json!(self.utc_date().unwrap_or_default()),
+            },
         ])
     }
 }
@@ -252,9 +287,10 @@ impl Telescope for MockTelescope {
     }
 
     fn target_right_ascension(&self) -> AlpacaResult<f64> {
-        self.target_ra.lock().unwrap().ok_or_else(|| {
-            AlpacaError::ValueNotSet("TargetRightAscension has not been set".into())
-        })
+        self.target_ra
+            .lock()
+            .unwrap()
+            .ok_or_else(|| AlpacaError::ValueNotSet("TargetRightAscension has not been set".into()))
     }
 
     fn set_target_right_ascension(&self, ra: f64) -> AlpacaResult<()> {
@@ -268,9 +304,10 @@ impl Telescope for MockTelescope {
     }
 
     fn target_declination(&self) -> AlpacaResult<f64> {
-        self.target_dec.lock().unwrap().ok_or_else(|| {
-            AlpacaError::ValueNotSet("TargetDeclination has not been set".into())
-        })
+        self.target_dec
+            .lock()
+            .unwrap()
+            .ok_or_else(|| AlpacaError::ValueNotSet("TargetDeclination has not been set".into()))
     }
 
     fn set_target_declination(&self, dec: f64) -> AlpacaResult<()> {
@@ -391,9 +428,10 @@ impl Telescope for MockTelescope {
         let ra = self.target_ra.lock().unwrap().ok_or_else(|| {
             AlpacaError::ValueNotSet("TargetRightAscension has not been set".into())
         })?;
-        let dec = self.target_dec.lock().unwrap().ok_or_else(|| {
-            AlpacaError::ValueNotSet("TargetDeclination has not been set".into())
-        })?;
+        let dec =
+            self.target_dec.lock().unwrap().ok_or_else(|| {
+                AlpacaError::ValueNotSet("TargetDeclination has not been set".into())
+            })?;
         *self.ra.lock().unwrap() = ra;
         *self.dec.lock().unwrap() = dec;
         *self.rate_base_ra.lock().unwrap() = ra;
@@ -406,9 +444,10 @@ impl Telescope for MockTelescope {
         let _ra = self.target_ra.lock().unwrap().ok_or_else(|| {
             AlpacaError::ValueNotSet("TargetRightAscension has not been set".into())
         })?;
-        let _dec = self.target_dec.lock().unwrap().ok_or_else(|| {
-            AlpacaError::ValueNotSet("TargetDeclination has not been set".into())
-        })?;
+        let _dec =
+            self.target_dec.lock().unwrap().ok_or_else(|| {
+                AlpacaError::ValueNotSet("TargetDeclination has not been set".into())
+            })?;
         *self.slew_start.lock().unwrap() = Some(Instant::now());
         Ok(())
     }
@@ -497,9 +536,10 @@ impl Telescope for MockTelescope {
         // RA/Dec rate offsets only valid when tracking at sidereal rate
         let current_rate = *self.tracking_rate.lock().unwrap();
         if current_rate != DriveRate::Sidereal {
-            return Err(AlpacaError::InvalidOperationException(
-                format!("Cannot set RightAscensionRate when tracking rate is {:?} (must be Sidereal)", current_rate)
-            ));
+            return Err(AlpacaError::InvalidOperationException(format!(
+                "Cannot set RightAscensionRate when tracking rate is {:?} (must be Sidereal)",
+                current_rate
+            )));
         }
         self.check_slew_complete();
         // Snapshot current effective position before changing rates
@@ -536,9 +576,10 @@ impl Telescope for MockTelescope {
     fn set_declination_rate(&self, rate: f64) -> AlpacaResult<()> {
         let current_rate = *self.tracking_rate.lock().unwrap();
         if current_rate != DriveRate::Sidereal {
-            return Err(AlpacaError::InvalidOperationException(
-                format!("Cannot set DeclinationRate when tracking rate is {:?} (must be Sidereal)", current_rate)
-            ));
+            return Err(AlpacaError::InvalidOperationException(format!(
+                "Cannot set DeclinationRate when tracking rate is {:?} (must be Sidereal)",
+                current_rate
+            )));
         }
         self.check_slew_complete();
         // Snapshot current effective position before changing rates
@@ -828,9 +869,10 @@ impl Telescope for MockTelescope {
         let ra = self.target_ra.lock().unwrap().ok_or_else(|| {
             AlpacaError::ValueNotSet("TargetRightAscension has not been set".into())
         })?;
-        let dec = self.target_dec.lock().unwrap().ok_or_else(|| {
-            AlpacaError::ValueNotSet("TargetDeclination has not been set".into())
-        })?;
+        let dec =
+            self.target_dec.lock().unwrap().ok_or_else(|| {
+                AlpacaError::ValueNotSet("TargetDeclination has not been set".into())
+            })?;
         *self.ra.lock().unwrap() = ra;
         *self.dec.lock().unwrap() = dec;
         *self.rate_base_ra.lock().unwrap() = ra;

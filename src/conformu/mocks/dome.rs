@@ -64,47 +64,109 @@ impl MockDome {
 }
 
 impl Device for MockDome {
-    fn static_name(&self) -> &str { "Mock Dome" }
-    fn unique_id(&self) -> &str { "mock-dome-001" }
-    fn device_type(&self) -> DeviceType { DeviceType::Dome }
-    fn connected(&self) -> AlpacaResult<bool> { Ok(*self.connected.lock().unwrap()) }
-    fn set_connected(&self, v: bool) -> AlpacaResult<()> { *self.connected.lock().unwrap() = v; Ok(()) }
-    fn connecting(&self) -> AlpacaResult<bool> { Ok(false) }
-    fn connect(&self) -> AlpacaResult<()> { *self.connected.lock().unwrap() = true; Ok(()) }
-    fn disconnect(&self) -> AlpacaResult<()> { *self.connected.lock().unwrap() = false; Ok(()) }
-    fn description(&self) -> AlpacaResult<String> { Ok("Mock Dome with full azimuth/shutter control".into()) }
-    fn driver_info(&self) -> AlpacaResult<String> { Ok("ascom-alpaca-core mock".into()) }
-    fn driver_version(&self) -> AlpacaResult<String> { Ok(env!("CARGO_PKG_VERSION").into()) }
-    fn interface_version(&self) -> AlpacaResult<i32> { Ok(3) }
-    fn name(&self) -> AlpacaResult<String> { Ok("Mock Dome".into()) }
-    fn supported_actions(&self) -> AlpacaResult<Vec<String>> { Ok(vec![]) }
+    fn static_name(&self) -> &str {
+        "Mock Dome"
+    }
+    fn unique_id(&self) -> &str {
+        "mock-dome-001"
+    }
+    fn device_type(&self) -> DeviceType {
+        DeviceType::Dome
+    }
+    fn connected(&self) -> AlpacaResult<bool> {
+        Ok(*self.connected.lock().unwrap())
+    }
+    fn set_connected(&self, v: bool) -> AlpacaResult<()> {
+        *self.connected.lock().unwrap() = v;
+        Ok(())
+    }
+    fn connecting(&self) -> AlpacaResult<bool> {
+        Ok(false)
+    }
+    fn connect(&self) -> AlpacaResult<()> {
+        *self.connected.lock().unwrap() = true;
+        Ok(())
+    }
+    fn disconnect(&self) -> AlpacaResult<()> {
+        *self.connected.lock().unwrap() = false;
+        Ok(())
+    }
+    fn description(&self) -> AlpacaResult<String> {
+        Ok("Mock Dome with full azimuth/shutter control".into())
+    }
+    fn driver_info(&self) -> AlpacaResult<String> {
+        Ok("ascom-alpaca-core mock".into())
+    }
+    fn driver_version(&self) -> AlpacaResult<String> {
+        Ok(env!("CARGO_PKG_VERSION").into())
+    }
+    fn interface_version(&self) -> AlpacaResult<i32> {
+        Ok(3)
+    }
+    fn name(&self) -> AlpacaResult<String> {
+        Ok("Mock Dome".into())
+    }
+    fn supported_actions(&self) -> AlpacaResult<Vec<String>> {
+        Ok(vec![])
+    }
     fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> {
         use crate::device::common::DeviceStateItem;
         self.check_slew_complete();
         Ok(vec![
-            DeviceStateItem { name: "Altitude".into(), value: serde_json::json!(*self.altitude.lock().unwrap()) },
-            DeviceStateItem { name: "AtHome".into(), value: serde_json::json!(*self.at_home.lock().unwrap()) },
-            DeviceStateItem { name: "AtPark".into(), value: serde_json::json!(*self.at_park.lock().unwrap()) },
-            DeviceStateItem { name: "Azimuth".into(), value: serde_json::json!(*self.azimuth.lock().unwrap()) },
-            DeviceStateItem { name: "ShutterStatus".into(), value: serde_json::json!(*self.shutter.lock().unwrap() as i32) },
-            DeviceStateItem { name: "Slewing".into(), value: serde_json::json!(self.slew_start.lock().unwrap().is_some() || self.alt_slew_start.lock().unwrap().is_some()) },
+            DeviceStateItem {
+                name: "Altitude".into(),
+                value: serde_json::json!(*self.altitude.lock().unwrap()),
+            },
+            DeviceStateItem {
+                name: "AtHome".into(),
+                value: serde_json::json!(*self.at_home.lock().unwrap()),
+            },
+            DeviceStateItem {
+                name: "AtPark".into(),
+                value: serde_json::json!(*self.at_park.lock().unwrap()),
+            },
+            DeviceStateItem {
+                name: "Azimuth".into(),
+                value: serde_json::json!(*self.azimuth.lock().unwrap()),
+            },
+            DeviceStateItem {
+                name: "ShutterStatus".into(),
+                value: serde_json::json!(*self.shutter.lock().unwrap() as i32),
+            },
+            DeviceStateItem {
+                name: "Slewing".into(),
+                value: serde_json::json!(
+                    self.slew_start.lock().unwrap().is_some()
+                        || self.alt_slew_start.lock().unwrap().is_some()
+                ),
+            },
         ])
     }
 }
 
 impl Dome for MockDome {
-    fn altitude(&self) -> AlpacaResult<f64> { Ok(*self.altitude.lock().unwrap()) }
+    fn altitude(&self) -> AlpacaResult<f64> {
+        Ok(*self.altitude.lock().unwrap())
+    }
 
     fn azimuth(&self) -> AlpacaResult<f64> {
         self.check_slew_complete();
         Ok(*self.azimuth.lock().unwrap())
     }
 
-    fn at_home(&self) -> AlpacaResult<bool> { Ok(*self.at_home.lock().unwrap()) }
-    fn at_park(&self) -> AlpacaResult<bool> { Ok(*self.at_park.lock().unwrap()) }
-    fn shutter_status(&self) -> AlpacaResult<ShutterState> { Ok(*self.shutter.lock().unwrap()) }
+    fn at_home(&self) -> AlpacaResult<bool> {
+        Ok(*self.at_home.lock().unwrap())
+    }
+    fn at_park(&self) -> AlpacaResult<bool> {
+        Ok(*self.at_park.lock().unwrap())
+    }
+    fn shutter_status(&self) -> AlpacaResult<ShutterState> {
+        Ok(*self.shutter.lock().unwrap())
+    }
 
-    fn slaved(&self) -> AlpacaResult<bool> { Ok(*self.slaved.lock().unwrap()) }
+    fn slaved(&self) -> AlpacaResult<bool> {
+        Ok(*self.slaved.lock().unwrap())
+    }
     fn set_slaved(&self, slaved: bool) -> AlpacaResult<()> {
         *self.slaved.lock().unwrap() = slaved;
         Ok(())
@@ -112,22 +174,41 @@ impl Dome for MockDome {
 
     fn slewing(&self) -> AlpacaResult<bool> {
         self.check_slew_complete();
-        Ok(self.slew_start.lock().unwrap().is_some() || self.alt_slew_start.lock().unwrap().is_some())
+        Ok(self.slew_start.lock().unwrap().is_some()
+            || self.alt_slew_start.lock().unwrap().is_some())
     }
 
     // All capabilities enabled for comprehensive ConformU testing
-    fn can_find_home(&self) -> AlpacaResult<bool> { Ok(true) }
-    fn can_park(&self) -> AlpacaResult<bool> { Ok(true) }
-    fn can_set_altitude(&self) -> AlpacaResult<bool> { Ok(true) }
-    fn can_set_azimuth(&self) -> AlpacaResult<bool> { Ok(true) }
-    fn can_set_park(&self) -> AlpacaResult<bool> { Ok(true) }
-    fn can_set_shutter(&self) -> AlpacaResult<bool> { Ok(true) }
-    fn can_slave(&self) -> AlpacaResult<bool> { Ok(true) }
-    fn can_sync_azimuth(&self) -> AlpacaResult<bool> { Ok(true) }
+    fn can_find_home(&self) -> AlpacaResult<bool> {
+        Ok(true)
+    }
+    fn can_park(&self) -> AlpacaResult<bool> {
+        Ok(true)
+    }
+    fn can_set_altitude(&self) -> AlpacaResult<bool> {
+        Ok(true)
+    }
+    fn can_set_azimuth(&self) -> AlpacaResult<bool> {
+        Ok(true)
+    }
+    fn can_set_park(&self) -> AlpacaResult<bool> {
+        Ok(true)
+    }
+    fn can_set_shutter(&self) -> AlpacaResult<bool> {
+        Ok(true)
+    }
+    fn can_slave(&self) -> AlpacaResult<bool> {
+        Ok(true)
+    }
+    fn can_sync_azimuth(&self) -> AlpacaResult<bool> {
+        Ok(true)
+    }
 
     fn slew_to_azimuth(&self, azimuth: f64) -> AlpacaResult<()> {
         if !(0.0..360.0).contains(&azimuth) {
-            return Err(AlpacaError::InvalidValue(format!("Azimuth {azimuth} out of range 0-360")));
+            return Err(AlpacaError::InvalidValue(format!(
+                "Azimuth {azimuth} out of range 0-360"
+            )));
         }
         *self.at_home.lock().unwrap() = false;
         *self.at_park.lock().unwrap() = false;
@@ -138,7 +219,9 @@ impl Dome for MockDome {
 
     fn slew_to_altitude(&self, altitude: f64) -> AlpacaResult<()> {
         if !(0.0..=90.0).contains(&altitude) {
-            return Err(AlpacaError::InvalidValue(format!("Altitude {altitude} out of range 0-90")));
+            return Err(AlpacaError::InvalidValue(format!(
+                "Altitude {altitude} out of range 0-90"
+            )));
         }
         *self.target_altitude.lock().unwrap() = altitude;
         *self.alt_slew_start.lock().unwrap() = Some(Instant::now());
@@ -147,7 +230,9 @@ impl Dome for MockDome {
 
     fn sync_to_azimuth(&self, azimuth: f64) -> AlpacaResult<()> {
         if !(0.0..360.0).contains(&azimuth) {
-            return Err(AlpacaError::InvalidValue(format!("Azimuth {azimuth} out of range 0-360")));
+            return Err(AlpacaError::InvalidValue(format!(
+                "Azimuth {azimuth} out of range 0-360"
+            )));
         }
         *self.azimuth.lock().unwrap() = azimuth;
         *self.target_azimuth.lock().unwrap() = azimuth;

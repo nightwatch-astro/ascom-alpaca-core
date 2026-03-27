@@ -175,34 +175,90 @@ fn epoch_days_to_ymd(days: u64) -> (u64, u64, u64) {
 }
 
 impl Device for MockCamera {
-    fn static_name(&self) -> &str { &self.camera_name }
-    fn unique_id(&self) -> &str { &self.unique_id }
-    fn device_type(&self) -> DeviceType { DeviceType::Camera }
-    fn connected(&self) -> AlpacaResult<bool> { Ok(*self.connected.lock().unwrap()) }
-    fn set_connected(&self, v: bool) -> AlpacaResult<()> { *self.connected.lock().unwrap() = v; Ok(()) }
-    fn connecting(&self) -> AlpacaResult<bool> { Ok(false) }
-    fn connect(&self) -> AlpacaResult<()> { *self.connected.lock().unwrap() = true; Ok(()) }
-    fn disconnect(&self) -> AlpacaResult<()> { *self.connected.lock().unwrap() = false; Ok(()) }
-    fn description(&self) -> AlpacaResult<String> { Ok(format!("{} for ConformU testing", self.camera_name)) }
-    fn driver_info(&self) -> AlpacaResult<String> { Ok("ascom-alpaca-core mock driver".into()) }
-    fn driver_version(&self) -> AlpacaResult<String> { Ok(env!("CARGO_PKG_VERSION").into()) }
-    fn interface_version(&self) -> AlpacaResult<i32> { Ok(4) }
-    fn name(&self) -> AlpacaResult<String> { Ok(self.camera_name.clone()) }
-    fn supported_actions(&self) -> AlpacaResult<Vec<String>> { Ok(vec![]) }
+    fn static_name(&self) -> &str {
+        &self.camera_name
+    }
+    fn unique_id(&self) -> &str {
+        &self.unique_id
+    }
+    fn device_type(&self) -> DeviceType {
+        DeviceType::Camera
+    }
+    fn connected(&self) -> AlpacaResult<bool> {
+        Ok(*self.connected.lock().unwrap())
+    }
+    fn set_connected(&self, v: bool) -> AlpacaResult<()> {
+        *self.connected.lock().unwrap() = v;
+        Ok(())
+    }
+    fn connecting(&self) -> AlpacaResult<bool> {
+        Ok(false)
+    }
+    fn connect(&self) -> AlpacaResult<()> {
+        *self.connected.lock().unwrap() = true;
+        Ok(())
+    }
+    fn disconnect(&self) -> AlpacaResult<()> {
+        *self.connected.lock().unwrap() = false;
+        Ok(())
+    }
+    fn description(&self) -> AlpacaResult<String> {
+        Ok(format!("{} for ConformU testing", self.camera_name))
+    }
+    fn driver_info(&self) -> AlpacaResult<String> {
+        Ok("ascom-alpaca-core mock driver".into())
+    }
+    fn driver_version(&self) -> AlpacaResult<String> {
+        Ok(env!("CARGO_PKG_VERSION").into())
+    }
+    fn interface_version(&self) -> AlpacaResult<i32> {
+        Ok(4)
+    }
+    fn name(&self) -> AlpacaResult<String> {
+        Ok(self.camera_name.clone())
+    }
+    fn supported_actions(&self) -> AlpacaResult<Vec<String>> {
+        Ok(vec![])
+    }
     fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> {
         use crate::device::common::DeviceStateItem;
         self.check_exposure_complete();
         let state = *self.state.lock().unwrap();
         let mut items = vec![
-            DeviceStateItem { name: "CameraState".into(), value: serde_json::json!(state as i32) },
-            DeviceStateItem { name: "CCDTemperature".into(), value: serde_json::json!(-10.0) },
-            DeviceStateItem { name: "ImageReady".into(), value: serde_json::json!(*self.image_ready.lock().unwrap()) },
-            DeviceStateItem { name: "HeatSinkTemperature".into(), value: serde_json::json!(25.0) },
-            DeviceStateItem { name: "IsPulseGuiding".into(), value: serde_json::json!(false) },
-            DeviceStateItem { name: "PercentCompleted".into(), value: serde_json::json!(0) },
+            DeviceStateItem {
+                name: "CameraState".into(),
+                value: serde_json::json!(state as i32),
+            },
+            DeviceStateItem {
+                name: "CCDTemperature".into(),
+                value: serde_json::json!(-10.0),
+            },
+            DeviceStateItem {
+                name: "ImageReady".into(),
+                value: serde_json::json!(*self.image_ready.lock().unwrap()),
+            },
+            DeviceStateItem {
+                name: "HeatSinkTemperature".into(),
+                value: serde_json::json!(25.0),
+            },
+            DeviceStateItem {
+                name: "IsPulseGuiding".into(),
+                value: serde_json::json!(false),
+            },
+            DeviceStateItem {
+                name: "PercentCompleted".into(),
+                value: serde_json::json!(0),
+            },
         ];
         if self.features.cooler {
-            items.push(DeviceStateItem { name: "CoolerPower".into(), value: serde_json::json!(if *self.cooler_on.lock().unwrap() { 50.0 } else { 0.0 }) });
+            items.push(DeviceStateItem {
+                name: "CoolerPower".into(),
+                value: serde_json::json!(if *self.cooler_on.lock().unwrap() {
+                    50.0
+                } else {
+                    0.0
+                }),
+            });
         }
         Ok(items)
     }
@@ -211,29 +267,57 @@ impl Device for MockCamera {
 impl Camera for MockCamera {
     // --- Mandatory properties (always available) ---
 
-    fn camera_xsize(&self) -> AlpacaResult<i32> { Ok(1024) }
-    fn camera_ysize(&self) -> AlpacaResult<i32> { Ok(768) }
-    fn max_adu(&self) -> AlpacaResult<i32> { Ok(65535) }
-    fn sensor_name(&self) -> AlpacaResult<String> { Ok("Mock Sensor".into()) }
-    fn sensor_type(&self) -> AlpacaResult<SensorType> { Ok(self.features.sensor_type) }
-    fn pixel_size_x(&self) -> AlpacaResult<f64> { Ok(3.75) }
-    fn pixel_size_y(&self) -> AlpacaResult<f64> { Ok(3.75) }
-    fn electrons_per_adu(&self) -> AlpacaResult<f64> { Ok(1.0) }
-    fn full_well_capacity(&self) -> AlpacaResult<f64> { Ok(65535.0) }
+    fn camera_xsize(&self) -> AlpacaResult<i32> {
+        Ok(1024)
+    }
+    fn camera_ysize(&self) -> AlpacaResult<i32> {
+        Ok(768)
+    }
+    fn max_adu(&self) -> AlpacaResult<i32> {
+        Ok(65535)
+    }
+    fn sensor_name(&self) -> AlpacaResult<String> {
+        Ok("Mock Sensor".into())
+    }
+    fn sensor_type(&self) -> AlpacaResult<SensorType> {
+        Ok(self.features.sensor_type)
+    }
+    fn pixel_size_x(&self) -> AlpacaResult<f64> {
+        Ok(3.75)
+    }
+    fn pixel_size_y(&self) -> AlpacaResult<f64> {
+        Ok(3.75)
+    }
+    fn electrons_per_adu(&self) -> AlpacaResult<f64> {
+        Ok(1.0)
+    }
+    fn full_well_capacity(&self) -> AlpacaResult<f64> {
+        Ok(65535.0)
+    }
     fn bayer_offset_x(&self) -> AlpacaResult<i32> {
         if self.features.sensor_type == SensorType::Monochrome {
-            Err(AlpacaError::NotImplemented("BayerOffsetX not available for monochrome sensor".into()))
-        } else { Ok(0) }
+            Err(AlpacaError::NotImplemented(
+                "BayerOffsetX not available for monochrome sensor".into(),
+            ))
+        } else {
+            Ok(0)
+        }
     }
     fn bayer_offset_y(&self) -> AlpacaResult<i32> {
         if self.features.sensor_type == SensorType::Monochrome {
-            Err(AlpacaError::NotImplemented("BayerOffsetY not available for monochrome sensor".into()))
-        } else { Ok(0) }
+            Err(AlpacaError::NotImplemented(
+                "BayerOffsetY not available for monochrome sensor".into(),
+            ))
+        } else {
+            Ok(0)
+        }
     }
     fn image_array(&self) -> AlpacaResult<ImageData> {
         self.check_exposure_complete();
         if !*self.image_ready.lock().unwrap() {
-            return Err(AlpacaError::InvalidOperationException("No image available".into()));
+            return Err(AlpacaError::InvalidOperationException(
+                "No image available".into(),
+            ));
         }
         let nx = *self.num_x.lock().unwrap() as usize;
         let ny = *self.num_y.lock().unwrap() as usize;
@@ -256,57 +340,113 @@ impl Camera for MockCamera {
         })
     }
 
-    fn exposure_min(&self) -> AlpacaResult<f64> { Ok(0.001) }
-    fn exposure_max(&self) -> AlpacaResult<f64> { Ok(3600.0) }
-    fn exposure_resolution(&self) -> AlpacaResult<f64> { Ok(0.001) }
-    fn percent_completed(&self) -> AlpacaResult<i32> { Ok(0) }
-    fn ccd_temperature(&self) -> AlpacaResult<f64> { Ok(-10.0) }
-    fn heat_sink_temperature(&self) -> AlpacaResult<f64> { Ok(25.0) }
+    fn exposure_min(&self) -> AlpacaResult<f64> {
+        Ok(0.001)
+    }
+    fn exposure_max(&self) -> AlpacaResult<f64> {
+        Ok(3600.0)
+    }
+    fn exposure_resolution(&self) -> AlpacaResult<f64> {
+        Ok(0.001)
+    }
+    fn percent_completed(&self) -> AlpacaResult<i32> {
+        Ok(0)
+    }
+    fn ccd_temperature(&self) -> AlpacaResult<f64> {
+        Ok(-10.0)
+    }
+    fn heat_sink_temperature(&self) -> AlpacaResult<f64> {
+        Ok(25.0)
+    }
 
     // --- Binning (always available, mandatory) ---
 
-    fn bin_x(&self) -> AlpacaResult<i32> { Ok(*self.bin_x.lock().unwrap()) }
+    fn bin_x(&self) -> AlpacaResult<i32> {
+        Ok(*self.bin_x.lock().unwrap())
+    }
     fn set_bin_x(&self, v: i32) -> AlpacaResult<()> {
-        if !(1..=4).contains(&v) { return Err(AlpacaError::InvalidValue(format!("BinX must be 1-4, got {v}"))); }
+        if !(1..=4).contains(&v) {
+            return Err(AlpacaError::InvalidValue(format!(
+                "BinX must be 1-4, got {v}"
+            )));
+        }
         *self.bin_x.lock().unwrap() = v;
         // Reset subframe to full frame at new binning
         *self.start_x.lock().unwrap() = 0;
         *self.num_x.lock().unwrap() = 1024 / v;
         Ok(())
     }
-    fn bin_y(&self) -> AlpacaResult<i32> { Ok(*self.bin_y.lock().unwrap()) }
+    fn bin_y(&self) -> AlpacaResult<i32> {
+        Ok(*self.bin_y.lock().unwrap())
+    }
     fn set_bin_y(&self, v: i32) -> AlpacaResult<()> {
-        if !(1..=4).contains(&v) { return Err(AlpacaError::InvalidValue(format!("BinY must be 1-4, got {v}"))); }
+        if !(1..=4).contains(&v) {
+            return Err(AlpacaError::InvalidValue(format!(
+                "BinY must be 1-4, got {v}"
+            )));
+        }
         *self.bin_y.lock().unwrap() = v;
         // Reset subframe to full frame at new binning
         *self.start_y.lock().unwrap() = 0;
         *self.num_y.lock().unwrap() = 768 / v;
         Ok(())
     }
-    fn max_bin_x(&self) -> AlpacaResult<i32> { Ok(4) }
-    fn max_bin_y(&self) -> AlpacaResult<i32> { Ok(4) }
+    fn max_bin_x(&self) -> AlpacaResult<i32> {
+        Ok(4)
+    }
+    fn max_bin_y(&self) -> AlpacaResult<i32> {
+        Ok(4)
+    }
 
     // --- Subframe (always available) ---
 
-    fn start_x(&self) -> AlpacaResult<i32> { Ok(*self.start_x.lock().unwrap()) }
+    fn start_x(&self) -> AlpacaResult<i32> {
+        Ok(*self.start_x.lock().unwrap())
+    }
     fn set_start_x(&self, v: i32) -> AlpacaResult<()> {
-        if v < 0 { return Err(AlpacaError::InvalidValue(format!("StartX must be >= 0, got {v}"))); }
-        *self.start_x.lock().unwrap() = v; Ok(())
+        if v < 0 {
+            return Err(AlpacaError::InvalidValue(format!(
+                "StartX must be >= 0, got {v}"
+            )));
+        }
+        *self.start_x.lock().unwrap() = v;
+        Ok(())
     }
-    fn start_y(&self) -> AlpacaResult<i32> { Ok(*self.start_y.lock().unwrap()) }
+    fn start_y(&self) -> AlpacaResult<i32> {
+        Ok(*self.start_y.lock().unwrap())
+    }
     fn set_start_y(&self, v: i32) -> AlpacaResult<()> {
-        if v < 0 { return Err(AlpacaError::InvalidValue(format!("StartY must be >= 0, got {v}"))); }
-        *self.start_y.lock().unwrap() = v; Ok(())
+        if v < 0 {
+            return Err(AlpacaError::InvalidValue(format!(
+                "StartY must be >= 0, got {v}"
+            )));
+        }
+        *self.start_y.lock().unwrap() = v;
+        Ok(())
     }
-    fn num_x(&self) -> AlpacaResult<i32> { Ok(*self.num_x.lock().unwrap()) }
+    fn num_x(&self) -> AlpacaResult<i32> {
+        Ok(*self.num_x.lock().unwrap())
+    }
     fn set_num_x(&self, v: i32) -> AlpacaResult<()> {
-        if v < 1 { return Err(AlpacaError::InvalidValue(format!("NumX must be >= 1, got {v}"))); }
-        *self.num_x.lock().unwrap() = v; Ok(())
+        if v < 1 {
+            return Err(AlpacaError::InvalidValue(format!(
+                "NumX must be >= 1, got {v}"
+            )));
+        }
+        *self.num_x.lock().unwrap() = v;
+        Ok(())
     }
-    fn num_y(&self) -> AlpacaResult<i32> { Ok(*self.num_y.lock().unwrap()) }
+    fn num_y(&self) -> AlpacaResult<i32> {
+        Ok(*self.num_y.lock().unwrap())
+    }
     fn set_num_y(&self, v: i32) -> AlpacaResult<()> {
-        if v < 1 { return Err(AlpacaError::InvalidValue(format!("NumY must be >= 1, got {v}"))); }
-        *self.num_y.lock().unwrap() = v; Ok(())
+        if v < 1 {
+            return Err(AlpacaError::InvalidValue(format!(
+                "NumY must be >= 1, got {v}"
+            )));
+        }
+        *self.num_y.lock().unwrap() = v;
+        Ok(())
     }
 
     // --- Exposure (always available) ---
@@ -321,7 +461,9 @@ impl Camera for MockCamera {
     }
     fn start_exposure(&self, duration: f64, _light: bool) -> AlpacaResult<()> {
         if duration < 0.0 {
-            return Err(AlpacaError::InvalidValue(format!("Duration must be >= 0, got {duration}")));
+            return Err(AlpacaError::InvalidValue(format!(
+                "Duration must be >= 0, got {duration}"
+            )));
         }
         // Validate subframe fits within sensor at current binning
         let bx = *self.bin_x.lock().unwrap();
@@ -333,16 +475,24 @@ impl Camera for MockCamera {
         let max_x = 1024 / bx;
         let max_y = 768 / by;
         if sx < 0 || sx >= max_x {
-            return Err(AlpacaError::InvalidValue(format!("StartX {sx} out of range for current binning")));
+            return Err(AlpacaError::InvalidValue(format!(
+                "StartX {sx} out of range for current binning"
+            )));
         }
         if sy < 0 || sy >= max_y {
-            return Err(AlpacaError::InvalidValue(format!("StartY {sy} out of range for current binning")));
+            return Err(AlpacaError::InvalidValue(format!(
+                "StartY {sy} out of range for current binning"
+            )));
         }
         if nx < 1 || sx + nx > max_x {
-            return Err(AlpacaError::InvalidValue(format!("NumX {nx} out of range for current binning and StartX")));
+            return Err(AlpacaError::InvalidValue(format!(
+                "NumX {nx} out of range for current binning and StartX"
+            )));
         }
         if ny < 1 || sy + ny > max_y {
-            return Err(AlpacaError::InvalidValue(format!("NumY {ny} out of range for current binning and StartY")));
+            return Err(AlpacaError::InvalidValue(format!(
+                "NumY {ny} out of range for current binning and StartY"
+            )));
         }
         *self.image_ready.lock().unwrap() = false;
         *self.exposure_duration_secs.lock().unwrap() = duration;
@@ -393,57 +543,104 @@ impl Camera for MockCamera {
         *self.exposure_start.lock().unwrap() = None;
         Ok(())
     }
-    fn can_abort_exposure(&self) -> AlpacaResult<bool> { Ok(true) }
-    fn can_stop_exposure(&self) -> AlpacaResult<bool> { Ok(true) }
+    fn can_abort_exposure(&self) -> AlpacaResult<bool> {
+        Ok(true)
+    }
+    fn can_stop_exposure(&self) -> AlpacaResult<bool> {
+        Ok(true)
+    }
 
     // --- Readout mode (always available) ---
 
-    fn readout_mode(&self) -> AlpacaResult<i32> { Ok(*self.readout_mode.lock().unwrap()) }
-    fn set_readout_mode(&self, v: i32) -> AlpacaResult<()> { *self.readout_mode.lock().unwrap() = v; Ok(()) }
-    fn readout_modes(&self) -> AlpacaResult<Vec<String>> { Ok(vec!["Default".into()]) }
+    fn readout_mode(&self) -> AlpacaResult<i32> {
+        Ok(*self.readout_mode.lock().unwrap())
+    }
+    fn set_readout_mode(&self, v: i32) -> AlpacaResult<()> {
+        *self.readout_mode.lock().unwrap() = v;
+        Ok(())
+    }
+    fn readout_modes(&self) -> AlpacaResult<Vec<String>> {
+        Ok(vec!["Default".into()])
+    }
 
     // --- Feature-gated: asymmetric bin ---
 
-    fn can_asymmetric_bin(&self) -> AlpacaResult<bool> { Ok(self.features.asymmetric_bin) }
+    fn can_asymmetric_bin(&self) -> AlpacaResult<bool> {
+        Ok(self.features.asymmetric_bin)
+    }
 
     // --- Feature-gated: shutter ---
 
-    fn has_shutter(&self) -> AlpacaResult<bool> { Ok(self.features.shutter) }
+    fn has_shutter(&self) -> AlpacaResult<bool> {
+        Ok(self.features.shutter)
+    }
 
     // --- Feature-gated: cooler ---
 
-    fn can_set_ccd_temperature(&self) -> AlpacaResult<bool> { Ok(self.features.cooler) }
-    fn can_get_cooler_power(&self) -> AlpacaResult<bool> { Ok(self.features.cooler) }
+    fn can_set_ccd_temperature(&self) -> AlpacaResult<bool> {
+        Ok(self.features.cooler)
+    }
+    fn can_get_cooler_power(&self) -> AlpacaResult<bool> {
+        Ok(self.features.cooler)
+    }
     fn cooler_on(&self) -> AlpacaResult<bool> {
-        if !self.features.cooler { return Err(AlpacaError::NotImplemented("cooler_on".into())); }
+        if !self.features.cooler {
+            return Err(AlpacaError::NotImplemented("cooler_on".into()));
+        }
         Ok(*self.cooler_on.lock().unwrap())
     }
     fn set_cooler_on(&self, on: bool) -> AlpacaResult<()> {
-        if !self.features.cooler { return Err(AlpacaError::NotImplemented("set_cooler_on".into())); }
+        if !self.features.cooler {
+            return Err(AlpacaError::NotImplemented("set_cooler_on".into()));
+        }
         *self.cooler_on.lock().unwrap() = on;
         Ok(())
     }
     fn cooler_power(&self) -> AlpacaResult<f64> {
-        if !self.features.cooler { return Err(AlpacaError::NotImplemented("cooler_power".into())); }
-        Ok(if *self.cooler_on.lock().unwrap() { 50.0 } else { 0.0 })
+        if !self.features.cooler {
+            return Err(AlpacaError::NotImplemented("cooler_power".into()));
+        }
+        Ok(if *self.cooler_on.lock().unwrap() {
+            50.0
+        } else {
+            0.0
+        })
     }
     fn set_ccd_temperature(&self) -> AlpacaResult<f64> {
-        if !self.features.cooler { return Err(AlpacaError::NotImplemented("set_ccd_temperature".into())); }
+        if !self.features.cooler {
+            return Err(AlpacaError::NotImplemented("set_ccd_temperature".into()));
+        }
         Ok(*self.target_temp.lock().unwrap())
     }
     fn set_set_ccd_temperature(&self, temp: f64) -> AlpacaResult<()> {
-        if !self.features.cooler { return Err(AlpacaError::NotImplemented("set_set_ccd_temperature".into())); }
-        if temp < -273.15 { return Err(AlpacaError::InvalidValue(format!("Temperature {temp}°C is below absolute zero"))); }
-        if temp > 50.0 { return Err(AlpacaError::InvalidValue(format!("Temperature {temp}°C is above maximum"))); }
+        if !self.features.cooler {
+            return Err(AlpacaError::NotImplemented(
+                "set_set_ccd_temperature".into(),
+            ));
+        }
+        if temp < -273.15 {
+            return Err(AlpacaError::InvalidValue(format!(
+                "Temperature {temp}°C is below absolute zero"
+            )));
+        }
+        if temp > 50.0 {
+            return Err(AlpacaError::InvalidValue(format!(
+                "Temperature {temp}°C is above maximum"
+            )));
+        }
         *self.target_temp.lock().unwrap() = temp;
         Ok(())
     }
 
     // --- Feature-gated: pulse guide ---
 
-    fn can_pulse_guide(&self) -> AlpacaResult<bool> { Ok(self.features.pulse_guide) }
+    fn can_pulse_guide(&self) -> AlpacaResult<bool> {
+        Ok(self.features.pulse_guide)
+    }
     fn is_pulse_guiding(&self) -> AlpacaResult<bool> {
-        if !self.features.pulse_guide { return Err(AlpacaError::NotImplemented("is_pulse_guiding".into())); }
+        if !self.features.pulse_guide {
+            return Err(AlpacaError::NotImplemented("is_pulse_guiding".into()));
+        }
         let start = *self.pulse_guide_start.lock().unwrap();
         if let Some(started_at) = start {
             let dur = *self.pulse_guide_duration_ms.lock().unwrap();
@@ -455,7 +652,9 @@ impl Camera for MockCamera {
         Ok(false)
     }
     fn pulse_guide(&self, _direction: GuideDirection, duration: i32) -> AlpacaResult<()> {
-        if !self.features.pulse_guide { return Err(AlpacaError::NotImplemented("pulse_guide".into())); }
+        if !self.features.pulse_guide {
+            return Err(AlpacaError::NotImplemented("pulse_guide".into()));
+        }
         *self.pulse_guide_duration_ms.lock().unwrap() = duration;
         *self.pulse_guide_start.lock().unwrap() = Some(Instant::now());
         Ok(())
@@ -463,13 +662,19 @@ impl Camera for MockCamera {
 
     // --- Feature-gated: fast readout ---
 
-    fn can_fast_readout(&self) -> AlpacaResult<bool> { Ok(self.features.fast_readout) }
+    fn can_fast_readout(&self) -> AlpacaResult<bool> {
+        Ok(self.features.fast_readout)
+    }
     fn fast_readout(&self) -> AlpacaResult<bool> {
-        if !self.features.fast_readout { return Err(AlpacaError::NotImplemented("fast_readout".into())); }
+        if !self.features.fast_readout {
+            return Err(AlpacaError::NotImplemented("fast_readout".into()));
+        }
         Ok(*self.fast_readout.lock().unwrap())
     }
     fn set_fast_readout(&self, fast: bool) -> AlpacaResult<()> {
-        if !self.features.fast_readout { return Err(AlpacaError::NotImplemented("set_fast_readout".into())); }
+        if !self.features.fast_readout {
+            return Err(AlpacaError::NotImplemented("set_fast_readout".into()));
+        }
         *self.fast_readout.lock().unwrap() = fast;
         Ok(())
     }
@@ -489,7 +694,9 @@ impl Camera for MockCamera {
             GainOffsetMode::None => Err(AlpacaError::NotImplemented("set_gain".into())),
             GainOffsetMode::Numeric { min, max } => {
                 if v < *min || v > *max {
-                    return Err(AlpacaError::InvalidValue(format!("Gain {v} out of range {min}-{max}")));
+                    return Err(AlpacaError::InvalidValue(format!(
+                        "Gain {v} out of range {min}-{max}"
+                    )));
                 }
                 *self.gain.lock().unwrap() = v;
                 Ok(())
@@ -497,7 +704,8 @@ impl Camera for MockCamera {
             GainOffsetMode::Named(names) => {
                 if v < 0 || v >= names.len() as i32 {
                     return Err(AlpacaError::InvalidValue(format!(
-                        "Gain index {v} out of range 0-{}", names.len() - 1
+                        "Gain index {v} out of range 0-{}",
+                        names.len() - 1
                     )));
                 }
                 *self.gain.lock().unwrap() = v;
@@ -539,7 +747,9 @@ impl Camera for MockCamera {
             GainOffsetMode::None => Err(AlpacaError::NotImplemented("set_offset".into())),
             GainOffsetMode::Numeric { min, max } => {
                 if v < *min || v > *max {
-                    return Err(AlpacaError::InvalidValue(format!("Offset {v} out of range {min}-{max}")));
+                    return Err(AlpacaError::InvalidValue(format!(
+                        "Offset {v} out of range {min}-{max}"
+                    )));
                 }
                 *self.offset.lock().unwrap() = v;
                 Ok(())
@@ -547,7 +757,8 @@ impl Camera for MockCamera {
             GainOffsetMode::Named(names) => {
                 if v < 0 || v >= names.len() as i32 {
                     return Err(AlpacaError::InvalidValue(format!(
-                        "Offset index {v} out of range 0-{}", names.len() - 1
+                        "Offset index {v} out of range 0-{}",
+                        names.len() - 1
                     )));
                 }
                 *self.offset.lock().unwrap() = v;
@@ -577,12 +788,22 @@ impl Camera for MockCamera {
     // --- Feature-gated: sub exposure ---
 
     fn sub_exposure_duration(&self) -> AlpacaResult<f64> {
-        if !self.features.sub_exposure { return Err(AlpacaError::NotImplemented("sub_exposure_duration".into())); }
+        if !self.features.sub_exposure {
+            return Err(AlpacaError::NotImplemented("sub_exposure_duration".into()));
+        }
         Ok(*self.sub_exposure_duration.lock().unwrap())
     }
     fn set_sub_exposure_duration(&self, v: f64) -> AlpacaResult<()> {
-        if !self.features.sub_exposure { return Err(AlpacaError::NotImplemented("set_sub_exposure_duration".into())); }
-        if v < 0.0 { return Err(AlpacaError::InvalidValue(format!("SubExposureDuration must be >= 0, got {v}"))); }
+        if !self.features.sub_exposure {
+            return Err(AlpacaError::NotImplemented(
+                "set_sub_exposure_duration".into(),
+            ));
+        }
+        if v < 0.0 {
+            return Err(AlpacaError::InvalidValue(format!(
+                "SubExposureDuration must be >= 0, got {v}"
+            )));
+        }
         *self.sub_exposure_duration.lock().unwrap() = v;
         Ok(())
     }

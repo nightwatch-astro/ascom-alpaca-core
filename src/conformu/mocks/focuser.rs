@@ -44,33 +44,75 @@ impl MockFocuser {
 }
 
 impl Device for MockFocuser {
-    fn static_name(&self) -> &str { "Mock Focuser" }
-    fn unique_id(&self) -> &str { "mock-foc-001" }
-    fn device_type(&self) -> DeviceType { DeviceType::Focuser }
-    fn connected(&self) -> AlpacaResult<bool> { Ok(*self.connected.lock().unwrap()) }
-    fn set_connected(&self, v: bool) -> AlpacaResult<()> { *self.connected.lock().unwrap() = v; Ok(()) }
-    fn connecting(&self) -> AlpacaResult<bool> { Ok(false) }
-    fn connect(&self) -> AlpacaResult<()> { *self.connected.lock().unwrap() = true; Ok(()) }
-    fn disconnect(&self) -> AlpacaResult<()> { *self.connected.lock().unwrap() = false; Ok(()) }
-    fn description(&self) -> AlpacaResult<String> { Ok("Mock Focuser".into()) }
-    fn driver_info(&self) -> AlpacaResult<String> { Ok("ascom-alpaca-core mock".into()) }
-    fn driver_version(&self) -> AlpacaResult<String> { Ok(env!("CARGO_PKG_VERSION").into()) }
-    fn interface_version(&self) -> AlpacaResult<i32> { Ok(4) }
-    fn name(&self) -> AlpacaResult<String> { Ok("Mock Focuser".into()) }
-    fn supported_actions(&self) -> AlpacaResult<Vec<String>> { Ok(vec![]) }
+    fn static_name(&self) -> &str {
+        "Mock Focuser"
+    }
+    fn unique_id(&self) -> &str {
+        "mock-foc-001"
+    }
+    fn device_type(&self) -> DeviceType {
+        DeviceType::Focuser
+    }
+    fn connected(&self) -> AlpacaResult<bool> {
+        Ok(*self.connected.lock().unwrap())
+    }
+    fn set_connected(&self, v: bool) -> AlpacaResult<()> {
+        *self.connected.lock().unwrap() = v;
+        Ok(())
+    }
+    fn connecting(&self) -> AlpacaResult<bool> {
+        Ok(false)
+    }
+    fn connect(&self) -> AlpacaResult<()> {
+        *self.connected.lock().unwrap() = true;
+        Ok(())
+    }
+    fn disconnect(&self) -> AlpacaResult<()> {
+        *self.connected.lock().unwrap() = false;
+        Ok(())
+    }
+    fn description(&self) -> AlpacaResult<String> {
+        Ok("Mock Focuser".into())
+    }
+    fn driver_info(&self) -> AlpacaResult<String> {
+        Ok("ascom-alpaca-core mock".into())
+    }
+    fn driver_version(&self) -> AlpacaResult<String> {
+        Ok(env!("CARGO_PKG_VERSION").into())
+    }
+    fn interface_version(&self) -> AlpacaResult<i32> {
+        Ok(4)
+    }
+    fn name(&self) -> AlpacaResult<String> {
+        Ok("Mock Focuser".into())
+    }
+    fn supported_actions(&self) -> AlpacaResult<Vec<String>> {
+        Ok(vec![])
+    }
     fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> {
         use crate::device::common::DeviceStateItem;
         self.check_move_complete();
         Ok(vec![
-            DeviceStateItem { name: "IsMoving".into(), value: serde_json::json!(self.move_start.lock().unwrap().is_some()) },
-            DeviceStateItem { name: "Position".into(), value: serde_json::json!(*self.position.lock().unwrap()) },
-            DeviceStateItem { name: "Temperature".into(), value: serde_json::json!(20.0) },
+            DeviceStateItem {
+                name: "IsMoving".into(),
+                value: serde_json::json!(self.move_start.lock().unwrap().is_some()),
+            },
+            DeviceStateItem {
+                name: "Position".into(),
+                value: serde_json::json!(*self.position.lock().unwrap()),
+            },
+            DeviceStateItem {
+                name: "Temperature".into(),
+                value: serde_json::json!(20.0),
+            },
         ])
     }
 }
 
 impl Focuser for MockFocuser {
-    fn absolute(&self) -> AlpacaResult<bool> { Ok(true) }
+    fn absolute(&self) -> AlpacaResult<bool> {
+        Ok(true)
+    }
 
     fn is_moving(&self) -> AlpacaResult<bool> {
         let start = *self.move_start.lock().unwrap();
@@ -86,18 +128,30 @@ impl Focuser for MockFocuser {
         Ok(false)
     }
 
-    fn max_increment(&self) -> AlpacaResult<i32> { Ok(50000) }
-    fn max_step(&self) -> AlpacaResult<i32> { Ok(50000) }
+    fn max_increment(&self) -> AlpacaResult<i32> {
+        Ok(50000)
+    }
+    fn max_step(&self) -> AlpacaResult<i32> {
+        Ok(50000)
+    }
 
     fn position(&self) -> AlpacaResult<i32> {
         self.check_move_complete();
         Ok(*self.position.lock().unwrap())
     }
 
-    fn step_size(&self) -> AlpacaResult<f64> { Ok(1.0) }
-    fn temp_comp(&self) -> AlpacaResult<bool> { Ok(*self.temp_comp.lock().unwrap()) }
-    fn temp_comp_available(&self) -> AlpacaResult<bool> { Ok(true) }
-    fn temperature(&self) -> AlpacaResult<f64> { Ok(20.0) }
+    fn step_size(&self) -> AlpacaResult<f64> {
+        Ok(1.0)
+    }
+    fn temp_comp(&self) -> AlpacaResult<bool> {
+        Ok(*self.temp_comp.lock().unwrap())
+    }
+    fn temp_comp_available(&self) -> AlpacaResult<bool> {
+        Ok(true)
+    }
+    fn temperature(&self) -> AlpacaResult<f64> {
+        Ok(20.0)
+    }
 
     fn set_temp_comp(&self, enabled: bool) -> AlpacaResult<()> {
         *self.temp_comp.lock().unwrap() = enabled;

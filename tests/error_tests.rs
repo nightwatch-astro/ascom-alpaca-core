@@ -6,17 +6,40 @@ fn error_codes_are_correct() {
     assert_eq!(AlpacaError::InvalidValue("".into()).error_code(), 0x401);
     assert_eq!(AlpacaError::ValueNotSet("".into()).error_code(), 0x402);
     assert_eq!(AlpacaError::NotConnected("".into()).error_code(), 0x407);
-    assert_eq!(AlpacaError::InvalidWhileParked("".into()).error_code(), 0x408);
-    assert_eq!(AlpacaError::InvalidWhileSlaved("".into()).error_code(), 0x409);
-    assert_eq!(AlpacaError::InvalidOperationException("".into()).error_code(), 0x40B);
-    assert_eq!(AlpacaError::ActionNotImplemented("".into()).error_code(), 0x40C);
-    assert_eq!(AlpacaError::OperationCancelled("".into()).error_code(), 0x40E);
     assert_eq!(
-        AlpacaError::DriverError { code: 0x500, message: "".into() }.error_code(),
+        AlpacaError::InvalidWhileParked("".into()).error_code(),
+        0x408
+    );
+    assert_eq!(
+        AlpacaError::InvalidWhileSlaved("".into()).error_code(),
+        0x409
+    );
+    assert_eq!(
+        AlpacaError::InvalidOperationException("".into()).error_code(),
+        0x40B
+    );
+    assert_eq!(
+        AlpacaError::ActionNotImplemented("".into()).error_code(),
+        0x40C
+    );
+    assert_eq!(
+        AlpacaError::OperationCancelled("".into()).error_code(),
+        0x40E
+    );
+    assert_eq!(
+        AlpacaError::DriverError {
+            code: 0x500,
+            message: "".into()
+        }
+        .error_code(),
         0x500
     );
     assert_eq!(
-        AlpacaError::DriverError { code: 0xFFF, message: "".into() }.error_code(),
+        AlpacaError::DriverError {
+            code: 0xFFF,
+            message: "".into()
+        }
+        .error_code(),
         0xFFF
     );
     assert_eq!(AlpacaError::Unknown(42).error_code(), 42);
@@ -40,7 +63,11 @@ fn from_code_roundtrip() {
 
     for (code, msg) in cases {
         let err = AlpacaError::from_code(code, msg.into());
-        assert_eq!(err.error_code(), code as i32, "code mismatch for 0x{code:X}");
+        assert_eq!(
+            err.error_code(),
+            code as i32,
+            "code mismatch for 0x{code:X}"
+        );
         assert_eq!(err.error_message(), msg, "message mismatch for 0x{code:X}");
     }
 }

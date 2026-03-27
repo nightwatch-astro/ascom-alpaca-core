@@ -19,7 +19,11 @@ fn device_type_path_roundtrip() {
 
     for (dt, path) in types {
         assert_eq!(dt.as_path(), path, "as_path for {dt}");
-        assert_eq!(DeviceType::from_path(path), Some(dt), "from_path for {path}");
+        assert_eq!(
+            DeviceType::from_path(path),
+            Some(dt),
+            "from_path for {path}"
+        );
     }
 }
 

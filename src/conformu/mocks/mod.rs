@@ -1,10 +1,10 @@
-pub mod safety_monitor;
 pub mod camera;
-pub mod switch;
 pub mod cover_calibrator;
 pub mod dome;
 pub mod filter_wheel;
 pub mod focuser;
 pub mod observing_conditions;
 pub mod rotator;
+pub mod safety_monitor;
+pub mod switch;
 pub mod telescope;

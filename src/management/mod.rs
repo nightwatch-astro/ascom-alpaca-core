@@ -14,9 +14,7 @@ impl ServerInfo {
 
     /// Returns the API versions supported by this server.
     pub fn api_versions(&self) -> ApiVersionsResponse {
-        ApiVersionsResponse {
-            value: vec![1],
-        }
+        ApiVersionsResponse { value: vec![1] }
     }
 }
 

@@ -6,11 +6,11 @@
 //!
 //! No HTTP framework, no async runtime — works on ESP32 and desktop.
 
-pub mod types;
 pub mod device;
 pub mod discovery;
 pub mod management;
 pub mod registry;
+pub mod types;
 
 #[cfg(feature = "conformu")]
 pub mod conformu;
@@ -38,16 +38,16 @@ pub mod telescope;
 
 /// Re-exports of the most commonly used types.
 pub mod prelude {
-    pub use crate::types::{
-        AlpacaError, AlpacaResponse, AlpacaResult, DeviceType, MethodResponse, RegistryError,
-    };
-    pub use crate::types::params::{normalize_params, CommonParams};
     pub use crate::device::{Device, RegisteredDevice};
     pub use crate::discovery::{
         DiscoveryResponse, DEFAULT_DISCOVERY_PORT, DISCOVERY_PROBE, IPV6_MULTICAST,
     };
     pub use crate::management::{ConfiguredDevice, ServerDescription, ServerInfo};
     pub use crate::registry::{ClientTracker, DeviceRegistry, TransactionCounter};
+    pub use crate::types::params::{normalize_params, CommonParams};
+    pub use crate::types::{
+        AlpacaError, AlpacaResponse, AlpacaResult, DeviceType, MethodResponse, RegistryError,
+    };
 
     #[cfg(feature = "camera")]
     pub use crate::camera::Camera;

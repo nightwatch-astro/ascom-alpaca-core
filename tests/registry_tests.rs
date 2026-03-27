@@ -12,9 +12,15 @@ struct TestSafetyMonitor {
 }
 
 impl Device for TestSafetyMonitor {
-    fn static_name(&self) -> &str { self.name }
-    fn unique_id(&self) -> &str { self.id }
-    fn device_type(&self) -> DeviceType { DeviceType::SafetyMonitor }
+    fn static_name(&self) -> &str {
+        self.name
+    }
+    fn unique_id(&self) -> &str {
+        self.id
+    }
+    fn device_type(&self) -> DeviceType {
+        DeviceType::SafetyMonitor
+    }
 }
 
 impl SafetyMonitor for TestSafetyMonitor {
@@ -26,9 +32,15 @@ impl SafetyMonitor for TestSafetyMonitor {
 struct TestSwitch;
 
 impl Device for TestSwitch {
-    fn static_name(&self) -> &str { "Test Switch" }
-    fn unique_id(&self) -> &str { "test-sw-001" }
-    fn device_type(&self) -> DeviceType { DeviceType::Switch }
+    fn static_name(&self) -> &str {
+        "Test Switch"
+    }
+    fn unique_id(&self) -> &str {
+        "test-sw-001"
+    }
+    fn device_type(&self) -> DeviceType {
+        DeviceType::Switch
+    }
 }
 
 impl Switch for TestSwitch {
@@ -41,7 +53,10 @@ impl Switch for TestSwitch {
 fn register_and_lookup() {
     let mut registry = DeviceRegistry::new();
 
-    let sm: Box<dyn SafetyMonitor> = Box::new(TestSafetyMonitor { name: "SM1", id: "sm-001" });
+    let sm: Box<dyn SafetyMonitor> = Box::new(TestSafetyMonitor {
+        name: "SM1",
+        id: "sm-001",
+    });
     let sw: Box<dyn Switch> = Box::new(TestSwitch);
 
     registry.register(sm);
@@ -65,8 +80,14 @@ fn device_not_found() {
 fn device_numbers_per_type() {
     let mut registry = DeviceRegistry::new();
 
-    let sm1: Box<dyn SafetyMonitor> = Box::new(TestSafetyMonitor { name: "SM1", id: "sm-001" });
-    let sm2: Box<dyn SafetyMonitor> = Box::new(TestSafetyMonitor { name: "SM2", id: "sm-002" });
+    let sm1: Box<dyn SafetyMonitor> = Box::new(TestSafetyMonitor {
+        name: "SM1",
+        id: "sm-001",
+    });
+    let sm2: Box<dyn SafetyMonitor> = Box::new(TestSafetyMonitor {
+        name: "SM2",
+        id: "sm-002",
+    });
     let sw: Box<dyn Switch> = Box::new(TestSwitch);
 
     registry.register(sm1);
@@ -86,7 +107,10 @@ fn device_numbers_per_type() {
 fn configured_devices() {
     let mut registry = DeviceRegistry::new();
 
-    let sm: Box<dyn SafetyMonitor> = Box::new(TestSafetyMonitor { name: "Weather Safe", id: "ws-001" });
+    let sm: Box<dyn SafetyMonitor> = Box::new(TestSafetyMonitor {
+        name: "Weather Safe",
+        id: "ws-001",
+    });
     let sw: Box<dyn Switch> = Box::new(TestSwitch);
 
     registry.register(sm);
@@ -108,7 +132,10 @@ fn configured_devices() {
 #[test]
 fn configured_devices_json() {
     let mut registry = DeviceRegistry::new();
-    let sm: Box<dyn SafetyMonitor> = Box::new(TestSafetyMonitor { name: "SM", id: "sm-1" });
+    let sm: Box<dyn SafetyMonitor> = Box::new(TestSafetyMonitor {
+        name: "SM",
+        id: "sm-1",
+    });
     registry.register(sm);
 
     let configured = registry.configured_devices();

@@ -90,20 +90,51 @@ impl MockSwitch {
 }
 
 impl Device for MockSwitch {
-    fn static_name(&self) -> &str { "Mock Switch" }
-    fn unique_id(&self) -> &str { "mock-sw-001" }
-    fn device_type(&self) -> DeviceType { DeviceType::Switch }
-    fn connected(&self) -> AlpacaResult<bool> { Ok(*self.connected.lock().unwrap()) }
-    fn set_connected(&self, v: bool) -> AlpacaResult<()> { *self.connected.lock().unwrap() = v; Ok(()) }
-    fn connecting(&self) -> AlpacaResult<bool> { Ok(false) }
-    fn connect(&self) -> AlpacaResult<()> { *self.connected.lock().unwrap() = true; Ok(()) }
-    fn disconnect(&self) -> AlpacaResult<()> { *self.connected.lock().unwrap() = false; Ok(()) }
-    fn description(&self) -> AlpacaResult<String> { Ok("Mock Switch with boolean, multi-state, and analog channels".into()) }
-    fn driver_info(&self) -> AlpacaResult<String> { Ok("ascom-alpaca-core mock".into()) }
-    fn driver_version(&self) -> AlpacaResult<String> { Ok(env!("CARGO_PKG_VERSION").into()) }
-    fn interface_version(&self) -> AlpacaResult<i32> { Ok(3) }
-    fn name(&self) -> AlpacaResult<String> { Ok("Mock Switch".into()) }
-    fn supported_actions(&self) -> AlpacaResult<Vec<String>> { Ok(vec![]) }
+    fn static_name(&self) -> &str {
+        "Mock Switch"
+    }
+    fn unique_id(&self) -> &str {
+        "mock-sw-001"
+    }
+    fn device_type(&self) -> DeviceType {
+        DeviceType::Switch
+    }
+    fn connected(&self) -> AlpacaResult<bool> {
+        Ok(*self.connected.lock().unwrap())
+    }
+    fn set_connected(&self, v: bool) -> AlpacaResult<()> {
+        *self.connected.lock().unwrap() = v;
+        Ok(())
+    }
+    fn connecting(&self) -> AlpacaResult<bool> {
+        Ok(false)
+    }
+    fn connect(&self) -> AlpacaResult<()> {
+        *self.connected.lock().unwrap() = true;
+        Ok(())
+    }
+    fn disconnect(&self) -> AlpacaResult<()> {
+        *self.connected.lock().unwrap() = false;
+        Ok(())
+    }
+    fn description(&self) -> AlpacaResult<String> {
+        Ok("Mock Switch with boolean, multi-state, and analog channels".into())
+    }
+    fn driver_info(&self) -> AlpacaResult<String> {
+        Ok("ascom-alpaca-core mock".into())
+    }
+    fn driver_version(&self) -> AlpacaResult<String> {
+        Ok(env!("CARGO_PKG_VERSION").into())
+    }
+    fn interface_version(&self) -> AlpacaResult<i32> {
+        Ok(3)
+    }
+    fn name(&self) -> AlpacaResult<String> {
+        Ok("Mock Switch".into())
+    }
+    fn supported_actions(&self) -> AlpacaResult<Vec<String>> {
+        Ok(vec![])
+    }
     fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> {
         use crate::device::common::DeviceStateItem;
         let values = self.values.lock().unwrap();
@@ -129,7 +160,9 @@ impl Device for MockSwitch {
 }
 
 impl Switch for MockSwitch {
-    fn max_switch(&self) -> AlpacaResult<i32> { Ok(CHANNELS.len() as i32) }
+    fn max_switch(&self) -> AlpacaResult<i32> {
+        Ok(CHANNELS.len() as i32)
+    }
 
     fn can_write(&self, id: u32) -> AlpacaResult<bool> {
         let ch = Self::validate_id(id)?;

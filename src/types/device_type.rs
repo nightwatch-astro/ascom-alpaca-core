@@ -81,6 +81,7 @@ impl Serialize for DeviceType {
 impl<'de> Deserialize<'de> for DeviceType {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let s = String::deserialize(deserializer)?;
-        Self::from_path(&s).ok_or_else(|| serde::de::Error::custom(format!("unknown device type: {s}")))
+        Self::from_path(&s)
+            .ok_or_else(|| serde::de::Error::custom(format!("unknown device type: {s}")))
     }
 }

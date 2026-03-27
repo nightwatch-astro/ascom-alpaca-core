@@ -45,7 +45,10 @@ fn alpaca_response_error_has_no_value() {
     let resp = AlpacaResponse::<bool>::from_error(AlpacaError::NotConnected("offline".into()));
     let json = serde_json::to_value(&resp).unwrap();
 
-    assert!(json.get("Value").is_none(), "Error response should not have Value");
+    assert!(
+        json.get("Value").is_none(),
+        "Error response should not have Value"
+    );
     assert_eq!(json["ErrorNumber"], 0x407);
     assert_eq!(json["ErrorMessage"], "offline");
 }
@@ -55,7 +58,10 @@ fn alpaca_response_not_implemented() {
     let resp = AlpacaResponse::<bool>::not_implemented("pulse_guide");
     let json = serde_json::to_value(&resp).unwrap();
     assert_eq!(json["ErrorNumber"], 0x400);
-    assert!(json["ErrorMessage"].as_str().unwrap().contains("pulse_guide"));
+    assert!(json["ErrorMessage"]
+        .as_str()
+        .unwrap()
+        .contains("pulse_guide"));
 }
 
 #[test]
@@ -83,7 +89,10 @@ fn method_response_ok() {
     let resp = MethodResponse::ok().with_transaction(1, 42);
     let json = serde_json::to_value(&resp).unwrap();
 
-    assert!(json.get("Value").is_none(), "MethodResponse should not have Value");
+    assert!(
+        json.get("Value").is_none(),
+        "MethodResponse should not have Value"
+    );
     assert_eq!(json["ErrorNumber"], 0);
     assert_eq!(json["ErrorMessage"], "");
     assert_eq!(json["ClientTransactionID"], 1);
@@ -140,8 +149,8 @@ fn forward_compat_extra_fields_ignored() {
 
 #[test]
 fn normalize_params_lowercases_keys() {
-    use std::collections::HashMap;
     use ascom_alpaca_core::types::params::normalize_params;
+    use std::collections::HashMap;
 
     let mut params = HashMap::new();
     params.insert("ClientID".to_string(), "42".to_string());

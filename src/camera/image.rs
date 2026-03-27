@@ -208,7 +208,8 @@ pub mod imagebytes {
                 for (i, row) in data.iter_mut().enumerate() {
                     for (j, pixel) in row.iter_mut().enumerate() {
                         let offset = (i * dim2 + j) * 2;
-                        *pixel = i16::from_le_bytes(pixel_data[offset..offset + 2].try_into().unwrap());
+                        *pixel =
+                            i16::from_le_bytes(pixel_data[offset..offset + 2].try_into().unwrap());
                     }
                 }
                 Ok(super::ImageData::I16_2D(data))
@@ -218,7 +219,8 @@ pub mod imagebytes {
                 for (i, row) in data.iter_mut().enumerate() {
                     for (j, pixel) in row.iter_mut().enumerate() {
                         let offset = (i * dim2 + j) * 4;
-                        *pixel = i32::from_le_bytes(pixel_data[offset..offset + 4].try_into().unwrap());
+                        *pixel =
+                            i32::from_le_bytes(pixel_data[offset..offset + 4].try_into().unwrap());
                     }
                 }
                 Ok(super::ImageData::I32_2D(data))
@@ -228,7 +230,8 @@ pub mod imagebytes {
                 for (i, row) in data.iter_mut().enumerate() {
                     for (j, pixel) in row.iter_mut().enumerate() {
                         let offset = (i * dim2 + j) * 8;
-                        *pixel = f64::from_le_bytes(pixel_data[offset..offset + 8].try_into().unwrap());
+                        *pixel =
+                            f64::from_le_bytes(pixel_data[offset..offset + 8].try_into().unwrap());
                     }
                 }
                 Ok(super::ImageData::F64_2D(data))
@@ -239,7 +242,9 @@ pub mod imagebytes {
                     for (j, row) in plane.iter_mut().enumerate() {
                         for (k, pixel) in row.iter_mut().enumerate() {
                             let offset = (i * dim2 * dim3 + j * dim3 + k) * 2;
-                            *pixel = i16::from_le_bytes(pixel_data[offset..offset + 2].try_into().unwrap());
+                            *pixel = i16::from_le_bytes(
+                                pixel_data[offset..offset + 2].try_into().unwrap(),
+                            );
                         }
                     }
                 }
@@ -251,7 +256,9 @@ pub mod imagebytes {
                     for (j, row) in plane.iter_mut().enumerate() {
                         for (k, pixel) in row.iter_mut().enumerate() {
                             let offset = (i * dim2 * dim3 + j * dim3 + k) * 4;
-                            *pixel = i32::from_le_bytes(pixel_data[offset..offset + 4].try_into().unwrap());
+                            *pixel = i32::from_le_bytes(
+                                pixel_data[offset..offset + 4].try_into().unwrap(),
+                            );
                         }
                     }
                 }
@@ -263,7 +270,9 @@ pub mod imagebytes {
                     for (j, row) in plane.iter_mut().enumerate() {
                         for (k, pixel) in row.iter_mut().enumerate() {
                             let offset = (i * dim2 * dim3 + j * dim3 + k) * 8;
-                            *pixel = f64::from_le_bytes(pixel_data[offset..offset + 8].try_into().unwrap());
+                            *pixel = f64::from_le_bytes(
+                                pixel_data[offset..offset + 8].try_into().unwrap(),
+                            );
                         }
                     }
                 }

@@ -73,7 +73,9 @@ pub trait Telescope: Device {
     }
 
     fn set_target_right_ascension(&self, _ra: f64) -> AlpacaResult<()> {
-        Err(AlpacaError::NotImplemented("set_target_right_ascension".into()))
+        Err(AlpacaError::NotImplemented(
+            "set_target_right_ascension".into(),
+        ))
     }
 
     fn target_declination(&self) -> AlpacaResult<f64> {
@@ -99,7 +101,9 @@ pub trait Telescope: Device {
     }
 
     fn slew_to_coordinates_async(&self, _ra: f64, _dec: f64) -> AlpacaResult<()> {
-        Err(AlpacaError::NotImplemented("slew_to_coordinates_async".into()))
+        Err(AlpacaError::NotImplemented(
+            "slew_to_coordinates_async".into(),
+        ))
     }
 
     fn slew_to_alt_az(&self, _azimuth: f64, _altitude: f64) -> AlpacaResult<()> {
@@ -127,7 +131,9 @@ pub trait Telescope: Device {
     }
 
     fn destination_side_of_pier(&self, _ra: f64, _dec: f64) -> AlpacaResult<SideOfPier> {
-        Err(AlpacaError::NotImplemented("destination_side_of_pier".into()))
+        Err(AlpacaError::NotImplemented(
+            "destination_side_of_pier".into(),
+        ))
     }
 
     // --- Tracking ---
@@ -157,7 +163,9 @@ pub trait Telescope: Device {
     }
 
     fn set_right_ascension_rate(&self, _rate: f64) -> AlpacaResult<()> {
-        Err(AlpacaError::NotImplemented("set_right_ascension_rate".into()))
+        Err(AlpacaError::NotImplemented(
+            "set_right_ascension_rate".into(),
+        ))
     }
 
     fn declination_rate(&self) -> AlpacaResult<f64> {
@@ -196,7 +204,11 @@ pub trait Telescope: Device {
 
     // --- Pulse guiding ---
 
-    fn pulse_guide(&self, _direction: crate::types::GuideDirection, _duration: i32) -> AlpacaResult<()> {
+    fn pulse_guide(
+        &self,
+        _direction: crate::types::GuideDirection,
+        _duration: i32,
+    ) -> AlpacaResult<()> {
         Err(AlpacaError::NotImplemented("pulse_guide".into()))
     }
 
@@ -205,11 +217,15 @@ pub trait Telescope: Device {
     }
 
     fn guide_rate_right_ascension(&self) -> AlpacaResult<f64> {
-        Err(AlpacaError::NotImplemented("guide_rate_right_ascension".into()))
+        Err(AlpacaError::NotImplemented(
+            "guide_rate_right_ascension".into(),
+        ))
     }
 
     fn set_guide_rate_right_ascension(&self, _rate: f64) -> AlpacaResult<()> {
-        Err(AlpacaError::NotImplemented("set_guide_rate_right_ascension".into()))
+        Err(AlpacaError::NotImplemented(
+            "set_guide_rate_right_ascension".into(),
+        ))
     }
 
     fn guide_rate_declination(&self) -> AlpacaResult<f64> {
@@ -217,7 +233,9 @@ pub trait Telescope: Device {
     }
 
     fn set_guide_rate_declination(&self, _rate: f64) -> AlpacaResult<()> {
-        Err(AlpacaError::NotImplemented("set_guide_rate_declination".into()))
+        Err(AlpacaError::NotImplemented(
+            "set_guide_rate_declination".into(),
+        ))
     }
 
     // --- Side of pier ---
@@ -341,7 +359,9 @@ pub trait Telescope: Device {
     }
 
     fn can_set_declination_rate(&self) -> AlpacaResult<bool> {
-        Err(AlpacaError::NotImplemented("can_set_declination_rate".into()))
+        Err(AlpacaError::NotImplemented(
+            "can_set_declination_rate".into(),
+        ))
     }
 
     fn can_set_guide_rates(&self) -> AlpacaResult<bool> {
@@ -357,7 +377,9 @@ pub trait Telescope: Device {
     }
 
     fn can_set_right_ascension_rate(&self) -> AlpacaResult<bool> {
-        Err(AlpacaError::NotImplemented("can_set_right_ascension_rate".into()))
+        Err(AlpacaError::NotImplemented(
+            "can_set_right_ascension_rate".into(),
+        ))
     }
 
     fn can_set_tracking(&self) -> AlpacaResult<bool> {

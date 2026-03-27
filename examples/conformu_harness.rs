@@ -31,12 +31,8 @@ fn main() {
             pulse_guide: true,
             fast_readout: true,
             asymmetric_bin: true,
-            gain_mode: GainOffsetMode::Named(vec![
-                "Low".into(), "Medium".into(), "High".into(),
-            ]),
-            offset_mode: GainOffsetMode::Named(vec![
-                "Normal".into(), "Low Noise".into(),
-            ]),
+            gain_mode: GainOffsetMode::Named(vec!["Low".into(), "Medium".into(), "High".into()]),
+            offset_mode: GainOffsetMode::Named(vec!["Normal".into(), "Low Noise".into()]),
             shutter: true,
             sub_exposure: true,
             sensor_type: SensorType::RGGB,
@@ -45,11 +41,13 @@ fn main() {
         "Mock Color Camera",
     ));
     let sw: Box<dyn Switch> = Box::new(mocks::switch::MockSwitch::new());
-    let cc: Box<dyn CoverCalibrator> = Box::new(mocks::cover_calibrator::MockCoverCalibrator::new());
+    let cc: Box<dyn CoverCalibrator> =
+        Box::new(mocks::cover_calibrator::MockCoverCalibrator::new());
     let dome: Box<dyn Dome> = Box::new(mocks::dome::MockDome::new());
     let fw: Box<dyn FilterWheel> = Box::new(mocks::filter_wheel::MockFilterWheel::new());
     let foc: Box<dyn Focuser> = Box::new(mocks::focuser::MockFocuser::new());
-    let oc: Box<dyn ObservingConditions> = Box::new(mocks::observing_conditions::MockObservingConditions::new());
+    let oc: Box<dyn ObservingConditions> =
+        Box::new(mocks::observing_conditions::MockObservingConditions::new());
     let rot: Box<dyn Rotator> = Box::new(mocks::rotator::MockRotator::new());
     let tel: Box<dyn Telescope> = Box::new(mocks::telescope::MockTelescope::new());
 
@@ -69,7 +67,8 @@ fn main() {
 
     let port = std::env::var("ALPACA_PORT").unwrap_or_else(|_| "32888".to_string());
     let addr = format!("127.0.0.1:{port}");
-    let server = tiny_http::Server::http(&addr).unwrap_or_else(|e| panic!("Failed to bind to {addr}: {e}"));
+    let server =
+        tiny_http::Server::http(&addr).unwrap_or_else(|e| panic!("Failed to bind to {addr}: {e}"));
     eprintln!("ConformU test harness listening on http://{addr}");
     eprintln!("Registered {} devices", registry.configured_devices().len());
     eprintln!("Press Ctrl+C to stop");
@@ -114,16 +113,18 @@ fn main() {
                 params,
                 is_put,
             };
-            let (body, _status) = ascom_alpaca_core::conformu::dispatch::dispatch_request(
-                &registry, &req, server_tx,
-            );
+            let (body, _status) =
+                ascom_alpaca_core::conformu::dispatch::dispatch_request(&registry, &req, server_tx);
             body
         } else {
             serde_json::json!({"error": "not found", "path": path}).to_string()
         };
 
-        let resp = tiny_http::Response::from_string(response_body)
-            .with_header("Content-Type: application/json".parse::<tiny_http::Header>().unwrap());
+        let resp = tiny_http::Response::from_string(response_body).with_header(
+            "Content-Type: application/json"
+                .parse::<tiny_http::Header>()
+                .unwrap(),
+        );
         let _ = request.respond(resp);
     }
 }

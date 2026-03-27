@@ -16,6 +16,12 @@ pub struct MockObservingConditions {
     average_period: Mutex<f64>,
 }
 
+impl Default for MockObservingConditions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MockObservingConditions {
     pub fn new() -> Self {
         Self {

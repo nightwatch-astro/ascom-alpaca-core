@@ -13,6 +13,12 @@ pub struct MockFocuser {
     temp_comp: Mutex<bool>,
 }
 
+impl Default for MockFocuser {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MockFocuser {
     pub fn new() -> Self {
         Self {

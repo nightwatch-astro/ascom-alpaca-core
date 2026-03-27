@@ -14,6 +14,12 @@ pub struct MockRotator {
     reverse: Mutex<bool>,
 }
 
+impl Default for MockRotator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MockRotator {
     pub fn new() -> Self {
         Self {
@@ -118,7 +124,7 @@ impl Rotator for MockRotator {
     }
 
     fn move_absolute(&self, position: f64) -> AlpacaResult<()> {
-        if position < 0.0 || position >= 360.0 {
+        if !(0.0..360.0).contains(&position) {
             return Err(AlpacaError::InvalidValue(format!(
                 "Position {position} out of range 0..360"
             )));
@@ -129,7 +135,7 @@ impl Rotator for MockRotator {
     }
 
     fn move_mechanical(&self, position: f64) -> AlpacaResult<()> {
-        if position < 0.0 || position >= 360.0 {
+        if !(0.0..360.0).contains(&position) {
             return Err(AlpacaError::InvalidValue(format!(
                 "Position {position} out of range 0..360"
             )));

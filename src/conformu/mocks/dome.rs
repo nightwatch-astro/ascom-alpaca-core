@@ -20,6 +20,12 @@ pub struct MockDome {
     park_azimuth: Mutex<f64>,
 }
 
+impl Default for MockDome {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MockDome {
     pub fn new() -> Self {
         Self {

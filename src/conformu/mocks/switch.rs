@@ -51,6 +51,12 @@ pub struct MockSwitch {
     names: Mutex<Vec<String>>,
 }
 
+impl Default for MockSwitch {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MockSwitch {
     pub fn new() -> Self {
         let values = CHANNELS.iter().map(|ch| ch.min).collect();

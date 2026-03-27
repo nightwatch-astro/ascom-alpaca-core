@@ -46,8 +46,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npx @scalar/cli validate tests/fixtures/AlpacaDeviceAPI_v1.yaml
-      - run: npx @scalar/cli validate tests/fixtures/AlpacaManagementAPI_v1.yaml
+      - run: npx @scalar/cli document validate tests/fixtures/AlpacaDeviceAPI_v1.yaml
+      - run: npx @scalar/cli document validate tests/fixtures/AlpacaManagementAPI_v1.yaml
 
   # Determine which ConformU device tests to run based on changed files
   conformu-filter:

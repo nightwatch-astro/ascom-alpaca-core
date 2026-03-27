@@ -11,6 +11,12 @@ pub struct MockCoverCalibrator {
     brightness: Mutex<i32>,
 }
 
+impl Default for MockCoverCalibrator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MockCoverCalibrator {
     pub fn new() -> Self {
         Self {
@@ -65,7 +71,7 @@ impl CoverCalibrator for MockCoverCalibrator {
     }
 
     fn calibrator_on(&self, brightness: i32) -> AlpacaResult<()> {
-        if brightness < 0 || brightness > 100 {
+        if !(0..=100).contains(&brightness) {
             return Err(AlpacaError::InvalidValue(format!(
                 "Brightness {brightness} out of range 0-100"
             )));

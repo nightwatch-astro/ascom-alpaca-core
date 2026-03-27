@@ -8,6 +8,12 @@ pub struct MockSafetyMonitor {
     connected: Mutex<bool>,
 }
 
+impl Default for MockSafetyMonitor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MockSafetyMonitor {
     pub fn new() -> Self {
         Self { connected: Mutex::new(false) }

@@ -38,6 +38,12 @@ pub struct MockTelescope {
     pulse_guide_duration_ms: Mutex<i32>,
 }
 
+impl Default for MockTelescope {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MockTelescope {
     pub fn new() -> Self {
         Self {
@@ -415,7 +421,7 @@ impl Telescope for MockTelescope {
 
     fn move_axis(&self, axis: i32, rate: f64) -> AlpacaResult<()> {
         self.check_not_parked()?;
-        if axis < 0 || axis > 2 {
+        if !(0..=2).contains(&axis) {
             return Err(AlpacaError::InvalidValue(format!(
                 "Axis must be 0, 1, or 2, got {axis}"
             )));

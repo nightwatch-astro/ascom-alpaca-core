@@ -83,6 +83,12 @@ pub struct MockCamera {
     pulse_guide_duration_ms: Mutex<i32>,
 }
 
+impl Default for MockCamera {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MockCamera {
     pub fn new() -> Self {
         Self::with_features(CameraFeatures::default())
@@ -261,7 +267,7 @@ impl Camera for MockCamera {
 
     fn bin_x(&self) -> AlpacaResult<i32> { Ok(*self.bin_x.lock().unwrap()) }
     fn set_bin_x(&self, v: i32) -> AlpacaResult<()> {
-        if v < 1 || v > 4 { return Err(AlpacaError::InvalidValue(format!("BinX must be 1-4, got {v}"))); }
+        if !(1..=4).contains(&v) { return Err(AlpacaError::InvalidValue(format!("BinX must be 1-4, got {v}"))); }
         *self.bin_x.lock().unwrap() = v;
         // Reset subframe to full frame at new binning
         *self.start_x.lock().unwrap() = 0;
@@ -270,7 +276,7 @@ impl Camera for MockCamera {
     }
     fn bin_y(&self) -> AlpacaResult<i32> { Ok(*self.bin_y.lock().unwrap()) }
     fn set_bin_y(&self, v: i32) -> AlpacaResult<()> {
-        if v < 1 || v > 4 { return Err(AlpacaError::InvalidValue(format!("BinY must be 1-4, got {v}"))); }
+        if !(1..=4).contains(&v) { return Err(AlpacaError::InvalidValue(format!("BinY must be 1-4, got {v}"))); }
         *self.bin_y.lock().unwrap() = v;
         // Reset subframe to full frame at new binning
         *self.start_y.lock().unwrap() = 0;

@@ -12,6 +12,12 @@ pub struct MockFilterWheel {
     move_start: Mutex<Option<Instant>>,
 }
 
+impl Default for MockFilterWheel {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MockFilterWheel {
     pub fn new() -> Self {
         Self {

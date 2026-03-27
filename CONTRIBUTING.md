@@ -120,4 +120,4 @@ Scopes: `camera`, `telescope`, `dome`, `switch`, `focuser`, `rotator`, `conformu
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the MIT OR Apache-2.0 dual license.
+By contributing, you agree that your contributions will be licensed under the Apache License, Version 2.0.

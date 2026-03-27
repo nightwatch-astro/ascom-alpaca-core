@@ -3,7 +3,7 @@
 [![Crates.io](https://img.shields.io/crates/v/ascom-alpaca-core.svg)](https://crates.io/crates/ascom-alpaca-core)
 [![Documentation](https://docs.rs/ascom-alpaca-core/badge.svg)](https://docs.rs/ascom-alpaca-core)
 [![CI](https://github.com/nightwatch-astro/ascom-alpaca-core/actions/workflows/ci.yml/badge.svg)](https://github.com/nightwatch-astro/ascom-alpaca-core/actions)
-[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](#license)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](#license)
 
 Framework-agnostic ASCOM Alpaca protocol types and traits for Rust.
 
@@ -15,7 +15,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-ascom-alpaca-core = "0.1"
+ascom-alpaca-core = "0.1.0" # x-release-please-version
 ```
 
 Implement a device:
@@ -482,9 +482,6 @@ Rust 1.75 or later.
 
 ## License
 
-Licensed under either of
+Licensed under the Apache License, Version 2.0 ([LICENSE](LICENSE) or <http://www.apache.org/licenses/LICENSE-2.0>).
 
-- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
-- MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
-
-at your option.
+Unless required by applicable law or agreed to in writing, software distributed under this license is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND.

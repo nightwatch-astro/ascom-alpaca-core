@@ -1,0 +1,84 @@
+name: Bug Report
+description: Report a bug in ascom-alpaca-core
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce the issue?
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened. Include error messages if any.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Crate version
+      description: Which version of ascom-alpaca-core?
+      placeholder: "e.g. 0.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: target
+    attributes:
+      label: Target platform
+      options:
+        - Desktop (x86_64)
+        - Desktop (aarch64)
+        - ESP32 (Xtensa)
+        - ESP32 (RISC-V)
+        - Other embedded
+    validations:
+      required: true
+
+  - type: input
+    id: device_type
+    attributes:
+      label: ASCOM device type affected
+      description: Which device type(s) does this involve?
+      placeholder: "e.g. Camera, Telescope, SafetyMonitor"
+
+  - type: dropdown
+    id: conformu
+    attributes:
+      label: ConformU related?
+      options:
+        - "Yes"
+        - "No"
+        - Not sure
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any other context, logs, or ConformU output.

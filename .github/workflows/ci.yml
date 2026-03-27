@@ -49,14 +49,121 @@ jobs:
       - run: npx @scalar/cli validate tests/fixtures/AlpacaDeviceAPI_v1.yaml
       - run: npx @scalar/cli validate tests/fixtures/AlpacaManagementAPI_v1.yaml
 
+  # Determine which ConformU device tests to run based on changed files
+  conformu-filter:
+    runs-on: ubuntu-latest
+    outputs:
+      devices: ${{ steps.filter.outputs.devices }}
+      any_changed: ${{ steps.filter.outputs.any_changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine affected devices
+        id: filter
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ "$EVENT_NAME" = "push" ]; then
+            BASE="$EVENT_BEFORE"
+          else
+            BASE="origin/$BASE_REF"
+          fi
+
+          # Get changed files (fallback to all if base unavailable)
+          CHANGED=$(git diff --name-only "$BASE" HEAD 2>/dev/null || echo "FULL_RUN")
+
+          # Shared files that affect all devices
+          SHARED_PATTERNS="src/types/|src/device/|src/registry/|src/discovery/|src/management/|src/lib.rs|src/conformu/dispatch.rs|src/conformu/management.rs|examples/conformu_harness.rs|Cargo.toml"
+
+          ALL_DEVICES='["safetymonitor/0","camera/0","camera/1","switch/0","covercalibrator/0","dome/0","filterwheel/0","focuser/0","observingconditions/0","rotator/0","telescope/0"]'
+
+          if echo "$CHANGED" | grep -qE "$SHARED_PATTERNS" || echo "$CHANGED" | grep -q "FULL_RUN"; then
+            echo "devices=$ALL_DEVICES" >> "$GITHUB_OUTPUT"
+            echo "any_changed=true" >> "$GITHUB_OUTPUT"
+            echo "Shared files changed — testing all devices"
+            exit 0
+          fi
+
+          # Map file paths to device endpoints
+          DEVICES="["
+          SEP=""
+          SEEN=""
+
+          check_add() {
+            local pattern="$1" dev="$2"
+            if echo "$CHANGED" | grep -q "$pattern"; then
+              if ! echo "$SEEN" | grep -q "$dev"; then
+                DEVICES="${DEVICES}${SEP}\"${dev}\""
+                SEP=","
+                SEEN="${SEEN} ${dev}"
+              fi
+            fi
+          }
+
+          check_add "src/safety_monitor/" "safetymonitor/0"
+          check_add "src/conformu/mocks/safety_monitor" "safetymonitor/0"
+          check_add "src/camera/" "camera/0"
+          check_add "src/conformu/mocks/camera" "camera/0"
+          check_add "src/switch/" "switch/0"
+          check_add "src/conformu/mocks/switch" "switch/0"
+          check_add "src/cover_calibrator/" "covercalibrator/0"
+          check_add "src/conformu/mocks/cover_calibrator" "covercalibrator/0"
+          check_add "src/dome/" "dome/0"
+          check_add "src/conformu/mocks/dome" "dome/0"
+          check_add "src/filter_wheel/" "filterwheel/0"
+          check_add "src/conformu/mocks/filter_wheel" "filterwheel/0"
+          check_add "src/focuser/" "focuser/0"
+          check_add "src/conformu/mocks/focuser" "focuser/0"
+          check_add "src/observing_conditions/" "observingconditions/0"
+          check_add "src/conformu/mocks/observing_conditions" "observingconditions/0"
+          check_add "src/rotator/" "rotator/0"
+          check_add "src/conformu/mocks/rotator" "rotator/0"
+          check_add "src/telescope/" "telescope/0"
+          check_add "src/conformu/mocks/telescope" "telescope/0"
+
+          # Camera changes also need color camera test
+          if echo "$SEEN" | grep -q "camera/0"; then
+            DEVICES="${DEVICES},\"camera/1\""
+          fi
+
+          DEVICES="${DEVICES}]"
+
+          if [ "$DEVICES" = "[]" ]; then
+            echo "any_changed=false" >> "$GITHUB_OUTPUT"
+            echo "devices=[]" >> "$GITHUB_OUTPUT"
+            echo "No device files changed — skipping ConformU"
+          else
+            echo "any_changed=true" >> "$GITHUB_OUTPUT"
+            echo "devices=$DEVICES" >> "$GITHUB_OUTPUT"
+            echo "Devices to test: $DEVICES"
+          fi
+
   conformu:
     runs-on: ubuntu-latest
-    needs: [test, lint]
+    needs: [test, lint, conformu-filter]
+    if: needs.conformu-filter.outputs.any_changed == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        device: ${{ fromJson(needs.conformu-filter.outputs.devices) }}
     env:
       CONFORMU_VERSION: "4.2.1"
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: |
+            target
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: conformu-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
 
       - name: Download ConformU
         run: |
@@ -66,125 +173,56 @@ jobs:
           chmod +x conformu
           echo "$PWD" >> "$GITHUB_PATH"
 
-      - name: Build test harness
-        run: cargo build --example conformu_harness --features conformu --release
-
-      - name: Start test harness
+      - name: Build and start test harness
         run: |
+          cargo build --example conformu_harness --features conformu --release
           cargo run --example conformu_harness --features conformu --release &
-          HARNESS_PID=$!
-          echo "HARNESS_PID=$HARNESS_PID" >> "$GITHUB_ENV"
           sleep 3
           curl -sf http://127.0.0.1:32888/management/apiversions || (echo "Harness failed to start" && exit 1)
 
-      - name: ConformU — all devices
+      - name: Run ConformU
+        env:
+          DEVICE: ${{ matrix.device }}
         run: |
-          DEVICES=(
-            "safetymonitor/0"
-            "camera/0"
-            "switch/0"
-            "covercalibrator/0"
-            "dome/0"
-            "filterwheel/0"
-            "focuser/0"
-            "observingconditions/0"
-            "rotator/0"
-            "telescope/0"
-          )
-          for device in "${DEVICES[@]}"; do
-            SLUG=$(echo "$device" | tr '/' '-')
-            echo "::group::ConformU — $device"
-            conformu conformance "http://127.0.0.1:32888/api/v1/$device" \
-              --resultsfile "conformu-${SLUG}.json" \
-              --logfilename "conformu-${SLUG}.log" \
-              || true
-            echo "::endgroup::"
-          done
+          SLUG=$(echo "$DEVICE" | tr '/' '-')
+          conformu conformance "http://127.0.0.1:32888/api/v1/$DEVICE" \
+            --resultsfile "conformu-${SLUG}.json" \
+            --logfilename "conformu-${SLUG}.log" \
+            || true
 
-      - name: Stop test harness
-        if: always()
-        run: kill $HARNESS_PID 2>/dev/null || true
-
-      - name: Convert results to JUnit XML and check for errors
-        if: always()
+      - name: Check results
+        env:
+          DEVICE: ${{ matrix.device }}
         run: |
-          python3 - <<'PYEOF'
-          import json, glob, sys
-          import xml.etree.ElementTree as ET
-
-          root = ET.Element("testsuites")
-          total_errors = 0
-          total_issues = 0
-
-          for f in sorted(glob.glob("conformu-*.json")):
-              try:
-                  data = json.load(open(f))
-                  name = f.replace("conformu-", "").replace(".json", "")
-                  error_count = data.get("ErrorCount", 0)
-                  issue_count = data.get("IssueCount", 0)
-                  total_errors += error_count
-                  total_issues += issue_count
-
-                  # Create a test suite per device
-                  suite = ET.SubElement(root, "testsuite",
-                      name=name,
-                      tests=str(error_count + issue_count + 1),
-                      failures=str(error_count))
-
-                  # Add a pass/fail test case for the device
-                  tc = ET.SubElement(suite, "testcase",
-                      name=f"{name}-conformance",
-                      classname=f"conformu.{name}")
-                  if error_count > 0:
-                      fail = ET.SubElement(tc, "failure",
-                          message=f"{error_count} conformance errors")
-                      error_msgs = []
-                      for e in data.get("Errors", []):
-                          error_msgs.append(f"{e['Key']}: {e['Value']}")
-                      fail.text = "\n".join(error_msgs)
-
-                  # Add individual errors as test cases
+          SLUG=$(echo "$DEVICE" | tr '/' '-')
+          python3 - <<PYEOF
+          import json, sys, os
+          slug = os.environ["DEVICE"].replace("/", "-")
+          f = f"conformu-{slug}.json"
+          try:
+              data = json.load(open(f))
+              errors = data.get("ErrorCount", 0)
+              issues = data.get("IssueCount", 0)
+              print(f"ConformU {slug}: {errors} errors, {issues} issues")
+              if errors > 0:
                   for e in data.get("Errors", []):
-                      etc = ET.SubElement(suite, "testcase",
-                          name=e["Key"],
-                          classname=f"conformu.{name}.errors")
-                      ef = ET.SubElement(etc, "failure", message="ConformU error")
-                      ef.text = e["Value"]
-
-                  # Add issues as skipped test cases (informational)
+                      print(f"  ERROR: {e['Key']}: {e['Value']}")
+                  print(f"::error::ConformU found {errors} conformance errors for {slug}")
+                  sys.exit(1)
+              if issues > 0:
                   for i in data.get("Issues", []):
-                      itc = ET.SubElement(suite, "testcase",
-                          name=i["Key"],
-                          classname=f"conformu.{name}.issues")
-                      ET.SubElement(itc, "skipped", message=i["Value"])
-
-                  print(f"{name}: {error_count} errors, {issue_count} issues")
-              except Exception as e:
-                  print(f"Warning: Could not parse {f}: {e}")
-
-          tree = ET.ElementTree(root)
-          ET.indent(tree, space="  ")
-          tree.write("conformu-results.xml", xml_declaration=True, encoding="utf-8")
-          print(f"\nTotal: {total_errors} errors, {total_issues} issues")
-          if total_errors > 0:
-              print(f"::error::ConformU found {total_errors} conformance errors")
+                      print(f"  ISSUE: {i['Key']}: {i['Value']}")
+                  print(f"::warning::ConformU found {issues} issues for {slug}")
+          except Exception as e:
+              print(f"::error::Failed to parse results: {e}")
               sys.exit(1)
           PYEOF
 
-      - name: Upload ConformU results
+      - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: conformu-results
+          name: conformu-${{ strategy.job-index }}
           path: |
             conformu-*.json
             conformu-*.log
-            conformu-results.xml
-
-      - name: Publish test results
-        if: always()
-        uses: dorny/test-reporter@v1
-        with:
-          name: ConformU Results
-          path: conformu-results.xml
-          reporter: java-junit

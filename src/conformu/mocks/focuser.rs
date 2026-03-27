@@ -59,7 +59,6 @@ impl Device for MockFocuser {
             DeviceStateItem { name: "IsMoving".into(), value: serde_json::json!(self.move_start.lock().unwrap().is_some()) },
             DeviceStateItem { name: "Position".into(), value: serde_json::json!(*self.position.lock().unwrap()) },
             DeviceStateItem { name: "Temperature".into(), value: serde_json::json!(20.0) },
-            DeviceStateItem { name: "TempComp".into(), value: serde_json::json!(*self.temp_comp.lock().unwrap()) },
         ])
     }
 }

@@ -92,7 +92,8 @@ impl CoverCalibrator for MockCoverCalibrator {
     }
 
     fn halt_cover(&self) -> AlpacaResult<()> {
-        Err(AlpacaError::NotImplemented("halt_cover not supported — cover operates synchronously".into()))
+        // Cover operations are synchronous, so halt is a no-op (never moving)
+        Ok(())
     }
 
     fn calibrator_changing(&self) -> AlpacaResult<bool> { Ok(false) }

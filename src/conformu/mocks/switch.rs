@@ -98,7 +98,30 @@ impl Device for MockSwitch {
     fn interface_version(&self) -> AlpacaResult<i32> { Ok(3) }
     fn name(&self) -> AlpacaResult<String> { Ok("Mock Switch".into()) }
     fn supported_actions(&self) -> AlpacaResult<Vec<String>> { Ok(vec![]) }
-    fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> { Ok(vec![]) }
+    fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> {
+        use crate::device::common::DeviceStateItem;
+        let values = self.values.lock().unwrap();
+        let mut items = vec![
+            DeviceStateItem { name: "MaxSwitch".into(), value: serde_json::json!(CHANNELS.len()) },
+        ];
+        for (i, ch) in CHANNELS.iter().enumerate() {
+            let val = values[i];
+            let bool_val = val >= (ch.min + ch.max) / 2.0;
+            items.push(DeviceStateItem {
+                name: format!("GetSwitch{i}"),
+                value: serde_json::json!(bool_val),
+            });
+            items.push(DeviceStateItem {
+                name: format!("GetSwitchValue{i}"),
+                value: serde_json::json!(val),
+            });
+            items.push(DeviceStateItem {
+                name: format!("StateChangeComplete{i}"),
+                value: serde_json::json!(true),
+            });
+        }
+        Ok(items)
+    }
 }
 
 impl Switch for MockSwitch {

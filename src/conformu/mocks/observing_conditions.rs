@@ -48,10 +48,27 @@ impl Device for MockObservingConditions {
     fn description(&self) -> AlpacaResult<String> { Ok("Mock ObservingConditions with all 13 weather sensors".into()) }
     fn driver_info(&self) -> AlpacaResult<String> { Ok("ascom-alpaca-core mock".into()) }
     fn driver_version(&self) -> AlpacaResult<String> { Ok(env!("CARGO_PKG_VERSION").into()) }
-    fn interface_version(&self) -> AlpacaResult<i32> { Ok(1) }
+    fn interface_version(&self) -> AlpacaResult<i32> { Ok(2) }
     fn name(&self) -> AlpacaResult<String> { Ok("Mock ObservingConditions".into()) }
     fn supported_actions(&self) -> AlpacaResult<Vec<String>> { Ok(vec![]) }
-    fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> { Ok(vec![]) }
+    fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> {
+        use crate::device::common::DeviceStateItem;
+        Ok(vec![
+            DeviceStateItem { name: "CloudCover".into(), value: serde_json::json!(20.0) },
+            DeviceStateItem { name: "DewPoint".into(), value: serde_json::json!(7.0) },
+            DeviceStateItem { name: "Humidity".into(), value: serde_json::json!(60.0) },
+            DeviceStateItem { name: "Pressure".into(), value: serde_json::json!(1013.25) },
+            DeviceStateItem { name: "RainRate".into(), value: serde_json::json!(0.0) },
+            DeviceStateItem { name: "SkyBrightness".into(), value: serde_json::json!(21.5) },
+            DeviceStateItem { name: "SkyQuality".into(), value: serde_json::json!(21.5) },
+            DeviceStateItem { name: "SkyTemperature".into(), value: serde_json::json!(-20.0) },
+            DeviceStateItem { name: "StarFWHM".into(), value: serde_json::json!(2.5) },
+            DeviceStateItem { name: "Temperature".into(), value: serde_json::json!(15.0) },
+            DeviceStateItem { name: "WindDirection".into(), value: serde_json::json!(180.0) },
+            DeviceStateItem { name: "WindGust".into(), value: serde_json::json!(8.0) },
+            DeviceStateItem { name: "WindSpeed".into(), value: serde_json::json!(5.0) },
+        ])
+    }
 }
 
 impl ObservingConditions for MockObservingConditions {

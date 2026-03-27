@@ -620,6 +620,8 @@ fn dispatch_telescope(registry: &DeviceRegistry, num: u32, method: &str, params:
         ("cansetrightascensionrate", false) => respond_val(dev.can_set_right_ascension_rate(), ctx, stx),
         ("doesrefraction", false) => respond_val(dev.does_refraction(), ctx, stx),
         ("doesrefraction", true) => respond_void(dev.set_does_refraction(param_bool(params, "doesrefraction")), ctx, stx),
+        ("slewsettletime", false) => respond_val(dev.slew_settle_time(), ctx, stx),
+        ("slewsettletime", true) => respond_void(dev.set_slew_settle_time(param_i32(params, "slewsettletime")), ctx, stx),
         ("aperturearea", false) => respond_val(dev.aperture_area(), ctx, stx),
         ("aperturediameter", false) => respond_val(dev.aperture_diameter(), ctx, stx),
         ("focallength", false) => respond_val(dev.focal_length(), ctx, stx),

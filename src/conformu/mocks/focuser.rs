@@ -49,10 +49,19 @@ impl Device for MockFocuser {
     fn description(&self) -> AlpacaResult<String> { Ok("Mock Focuser".into()) }
     fn driver_info(&self) -> AlpacaResult<String> { Ok("ascom-alpaca-core mock".into()) }
     fn driver_version(&self) -> AlpacaResult<String> { Ok(env!("CARGO_PKG_VERSION").into()) }
-    fn interface_version(&self) -> AlpacaResult<i32> { Ok(3) }
+    fn interface_version(&self) -> AlpacaResult<i32> { Ok(4) }
     fn name(&self) -> AlpacaResult<String> { Ok("Mock Focuser".into()) }
     fn supported_actions(&self) -> AlpacaResult<Vec<String>> { Ok(vec![]) }
-    fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> { Ok(vec![]) }
+    fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> {
+        use crate::device::common::DeviceStateItem;
+        self.check_move_complete();
+        Ok(vec![
+            DeviceStateItem { name: "IsMoving".into(), value: serde_json::json!(self.move_start.lock().unwrap().is_some()) },
+            DeviceStateItem { name: "Position".into(), value: serde_json::json!(*self.position.lock().unwrap()) },
+            DeviceStateItem { name: "Temperature".into(), value: serde_json::json!(20.0) },
+            DeviceStateItem { name: "TempComp".into(), value: serde_json::json!(*self.temp_comp.lock().unwrap()) },
+        ])
+    }
 }
 
 impl Focuser for MockFocuser {

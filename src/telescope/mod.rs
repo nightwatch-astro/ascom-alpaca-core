@@ -221,6 +221,16 @@ pub trait Telescope: Device {
         Err(AlpacaError::NotImplemented("set_utc_date".into()))
     }
 
+    // --- Slew settle time ---
+
+    fn slew_settle_time(&self) -> AlpacaResult<i32> {
+        Err(AlpacaError::NotImplemented("slew_settle_time".into()))
+    }
+
+    fn set_slew_settle_time(&self, _settle_time: i32) -> AlpacaResult<()> {
+        Err(AlpacaError::NotImplemented("set_slew_settle_time".into()))
+    }
+
     // --- Axis rates ---
 
     fn axis_rates(&self, _axis: i32) -> AlpacaResult<Vec<AxisRates>> {

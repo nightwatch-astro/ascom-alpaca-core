@@ -180,10 +180,24 @@ impl Device for MockCamera {
     fn description(&self) -> AlpacaResult<String> { Ok(format!("{} for ConformU testing", self.camera_name)) }
     fn driver_info(&self) -> AlpacaResult<String> { Ok("ascom-alpaca-core mock driver".into()) }
     fn driver_version(&self) -> AlpacaResult<String> { Ok(env!("CARGO_PKG_VERSION").into()) }
-    fn interface_version(&self) -> AlpacaResult<i32> { Ok(3) }
+    fn interface_version(&self) -> AlpacaResult<i32> { Ok(4) }
     fn name(&self) -> AlpacaResult<String> { Ok(self.camera_name.clone()) }
     fn supported_actions(&self) -> AlpacaResult<Vec<String>> { Ok(vec![]) }
-    fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> { Ok(vec![]) }
+    fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> {
+        use crate::device::common::DeviceStateItem;
+        self.check_exposure_complete();
+        let state = *self.state.lock().unwrap();
+        let mut items = vec![
+            DeviceStateItem { name: "CameraState".into(), value: serde_json::json!(state as i32) },
+            DeviceStateItem { name: "CCDTemperature".into(), value: serde_json::json!(-10.0) },
+            DeviceStateItem { name: "ImageReady".into(), value: serde_json::json!(*self.image_ready.lock().unwrap()) },
+            DeviceStateItem { name: "IsPulseGuiding".into(), value: serde_json::json!(false) },
+        ];
+        if self.features.cooler {
+            items.push(DeviceStateItem { name: "CoolerPower".into(), value: serde_json::json!(if *self.cooler_on.lock().unwrap() { 50.0 } else { 0.0 }) });
+        }
+        Ok(items)
+    }
 }
 
 impl Camera for MockCamera {

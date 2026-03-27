@@ -1,89 +1,476 @@
 # ascom-alpaca-core
 
+[![Crates.io](https://img.shields.io/crates/v/ascom-alpaca-core.svg)](https://crates.io/crates/ascom-alpaca-core)
+[![Documentation](https://docs.rs/ascom-alpaca-core/badge.svg)](https://docs.rs/ascom-alpaca-core)
+[![CI](https://github.com/nightwatch-astro/ascom-alpaca-core/actions/workflows/ci.yml/badge.svg)](https://github.com/nightwatch-astro/ascom-alpaca-core/actions)
+[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](#license)
+
 Framework-agnostic ASCOM Alpaca protocol types and traits for Rust.
 
-Provides the complete protocol abstraction for all 10 ASCOM device types (~220 methods) without any HTTP framework, async runtime, or networking dependency. Works on ESP32 and desktop.
+Provides the complete protocol abstraction for all 10 ASCOM device types (~220 methods) without any HTTP framework, async runtime, or networking dependency. Works on ESP32 (via esp-idf) and desktop alike.
 
-## Features
+## Quick Start
 
-- All 10 ASCOM Alpaca device type traits: Camera, CoverCalibrator, Dome, FilterWheel, Focuser, ObservingConditions, Rotator, SafetyMonitor, Switch, Telescope
-- Typed response envelopes (`AlpacaResponse<T>`, `MethodResponse`) with correct PascalCase JSON serialization
-- All ASCOM error codes (0x400-0xFFF) with `std::error::Error` implementation
-- Domain enums with integer serialization via `serde_repr` (CameraState, ShutterState, SideOfPier, etc.)
-- Device registry with typed lookup, transaction counter, and client tracking
-- Discovery protocol types and constants
-- Management API types (ServerDescription, ConfiguredDevice, ApiVersions)
-- Camera ImageArray with JSON and ImageBytes binary encoding
-- Per-device feature flags for minimal binary size
+Add to your `Cargo.toml`:
 
-## Usage
+```toml
+[dependencies]
+ascom-alpaca-core = "0.1"
+```
+
+Implement a device:
 
 ```rust
 use ascom_alpaca_core::prelude::*;
 
-struct MySafetyMonitor { /* your hardware */ }
-
-impl Device for MySafetyMonitor {
-    fn static_name(&self) -> &str { "My Weather Station" }
-    fn unique_id(&self) -> &str { "my-ws-001" }
-    fn device_type(&self) -> DeviceType { DeviceType::SafetyMonitor }
+struct MyWeatherStation {
+    wind_speed: f64,
+    cloud_cover: f64,
 }
 
-impl SafetyMonitor for MySafetyMonitor {
+impl Device for MyWeatherStation {
+    fn static_name(&self) -> &str { "My Weather Station" }
+    fn unique_id(&self) -> &str { "weather-001" }
+    fn device_type(&self) -> DeviceType { DeviceType::SafetyMonitor }
+    fn connected(&self) -> AlpacaResult<bool> { Ok(true) }
+    fn set_connected(&self, _v: bool) -> AlpacaResult<()> { Ok(()) }
+    fn description(&self) -> AlpacaResult<String> { Ok("Backyard weather station".into()) }
+    fn driver_info(&self) -> AlpacaResult<String> { Ok("my-weather v1.0".into()) }
+    fn driver_version(&self) -> AlpacaResult<String> { Ok("1.0.0".into()) }
+    fn interface_version(&self) -> AlpacaResult<i32> { Ok(3) }
+    fn name(&self) -> AlpacaResult<String> { Ok("My Weather Station".into()) }
+}
+
+impl SafetyMonitor for MyWeatherStation {
     fn is_safe(&self) -> AlpacaResult<bool> {
-        Ok(true) // your safety logic here
+        Ok(self.wind_speed < 30.0 && self.cloud_cover < 80.0)
     }
 }
 ```
 
-Build a response:
+## Core Concepts
+
+### Device Traits
+
+Every ASCOM device type is a Rust trait extending `Device`. The `Device` trait provides common properties (name, description, connected state, etc.), and each device trait adds type-specific methods.
+
+All trait methods have default implementations returning `NotImplemented`, so you only override what your hardware supports:
+
 ```rust
-let response = AlpacaResponse::ok(true)
-    .with_transaction(client_tx_id, server_tx_id);
-let json = serde_json::to_string(&response)?;
-// {"Value":true,"ErrorNumber":0,"ErrorMessage":"","ClientTransactionID":1,"ServerTransactionID":42}
+impl Camera for MyCamera {
+    // Required: what your camera actually does
+    fn camera_xsize(&self) -> AlpacaResult<i32> { Ok(4656) }
+    fn camera_ysize(&self) -> AlpacaResult<i32> { Ok(3520) }
+    fn start_exposure(&self, duration: f64, light: bool) -> AlpacaResult<()> {
+        // your exposure logic
+        Ok(())
+    }
+
+    // Optional: returns NotImplemented by default
+    // fn can_pulse_guide(&self) -> AlpacaResult<bool> { ... }
+    // fn pulse_guide(&self, direction: GuideDirection, duration: i32) -> AlpacaResult<()> { ... }
+}
 ```
 
-Register devices:
+### Response Envelopes
+
+All Alpaca endpoints return JSON with PascalCase field names, error codes, and transaction IDs:
+
+```rust
+// Value-returning endpoint (GET)
+let response = AlpacaResponse::ok(42.5)
+    .with_transaction(client_tx, server_tx);
+// {"Value":42.5,"ErrorNumber":0,"ErrorMessage":"","ClientTransactionID":1,"ServerTransactionID":1}
+
+// Error response
+let response = AlpacaResponse::<bool>::from_error(
+    AlpacaError::InvalidValue("Temperature out of range".into())
+).with_transaction(client_tx, server_tx);
+// {"ErrorNumber":1025,"ErrorMessage":"Temperature out of range","ClientTransactionID":1,"ServerTransactionID":1}
+
+// Void endpoint (PUT)
+let response = MethodResponse::ok().with_transaction(client_tx, server_tx);
+// {"ErrorNumber":0,"ErrorMessage":"","ClientTransactionID":1,"ServerTransactionID":1}
+```
+
+### Device Registry
+
+The registry stores heterogeneous devices and provides typed lookup. Device numbers are assigned automatically per type (first Camera = 0, second Camera = 1, etc.):
+
 ```rust
 let mut registry = DeviceRegistry::new();
-let sm: Box<dyn SafetyMonitor> = Box::new(MySafetyMonitor { /* ... */ });
-registry.register(sm);
 
-let devices = registry.configured_devices(); // for /management/v1/configureddevices
+let sm: Box<dyn SafetyMonitor> = Box::new(MyWeatherStation { /* ... */ });
+let cam: Box<dyn Camera> = Box::new(MyCamera { /* ... */ });
+registry.register(sm);
+registry.register(cam);
+
+// For management API
+let devices = registry.configured_devices();
+
+// Typed lookup
+let cam = registry.get_camera(0)?; // &dyn Camera
+let sm = registry.get_safety_monitor(0)?; // &dyn SafetyMonitor
+
+// Generic lookup (any device type)
+let dev = registry.get_device(DeviceType::Camera, 0)?; // &dyn Device
+```
+
+### Error Handling
+
+ASCOM errors are protocol-level (HTTP 200 with error in JSON body), not HTTP errors:
+
+```rust
+use ascom_alpaca_core::types::{AlpacaError, AlpacaResult};
+
+fn set_temperature(&self, temp: f64) -> AlpacaResult<()> {
+    if temp < -273.15 {
+        return Err(AlpacaError::InvalidValue("Below absolute zero".into()));
+    }
+    if !self.is_connected() {
+        return Err(AlpacaError::NotConnected("Camera not connected".into()));
+    }
+    // ...
+    Ok(())
+}
+```
+
+| Error | Code | When to use |
+|-------|------|-------------|
+| `NotImplemented` | 0x400 | Method not supported by this hardware |
+| `InvalidValue` | 0x401 | Parameter out of valid range |
+| `ValueNotSet` | 0x402 | Required value not yet assigned (e.g., target coordinates) |
+| `NotConnected` | 0x407 | Device not connected |
+| `InvalidWhileParked` | 0x408 | Telescope/dome operation while parked |
+| `InvalidWhileSlaved` | 0x409 | Operation while dome is slaved |
+| `InvalidOperationException` | 0x40B | General invalid state |
+| `ActionNotImplemented` | 0x40C | Custom action not recognized |
+| `OperationCancelled` | 0x40E | Async operation was cancelled |
+| `DriverError` | 0x500-0xFFF | Hardware-specific errors |
+
+### Discovery & Management
+
+```rust
+use ascom_alpaca_core::discovery::*;
+
+// UDP discovery constants
+let port = DEFAULT_DISCOVERY_PORT; // 32227
+let probe = DISCOVERY_PROBE; // "alpacadiscovery1"
+let ipv6 = IPV6_MULTICAST; // ff12::a1:9aca
+
+// Management API types
+use ascom_alpaca_core::management::*;
+
+let description = ServerDescription {
+    server_name: "My Alpaca Server".into(),
+    manufacturer: "My Company".into(),
+    manufacturer_version: "1.0.0".into(),
+    location: "Backyard Observatory".into(),
+};
+```
+
+### Transaction Tracking
+
+```rust
+let counter = TransactionCounter::new();
+let server_tx = counter.next(); // thread-safe atomic increment
+
+let tracker = ClientTracker::new();
+tracker.record_client(client_id);
+```
+
+## Device Types
+
+| Trait | Methods | Description |
+|-------|---------|-------------|
+| [`SafetyMonitor`](#safetymonitor) | 1 | Weather safety (IsSafe) |
+| [`Switch`](#switch) | 16 | Multi-channel on/off and analog switches |
+| [`Camera`](#camera) | ~55 | Imaging with exposure, binning, gain, cooling |
+| [`CoverCalibrator`](#covercalibrator) | 12 | Flat panel and dust cover control |
+| [`Dome`](#dome) | 22 | Observatory dome rotation and shutter |
+| [`FilterWheel`](#filterwheel) | 7 | Filter wheel position and naming |
+| [`Focuser`](#focuser) | 12 | Focus motor with temperature compensation |
+| [`ObservingConditions`](#observingconditions) | 15 | Weather station (13 sensors) |
+| [`Rotator`](#rotator) | 12 | Camera rotator (mechanical + logical position) |
+| [`Telescope`](#telescope) | ~60 | Mount control, tracking, guiding, slewing |
+
+### SafetyMonitor
+
+The simplest device — a single `is_safe()` method:
+
+```rust
+impl SafetyMonitor for MyDevice {
+    fn is_safe(&self) -> AlpacaResult<bool> {
+        Ok(self.wind_speed < 30.0 && !self.is_raining)
+    }
+}
+```
+
+### Switch
+
+Multi-channel device with boolean, multi-state, and analog channels:
+
+```rust
+impl Switch for MyPowerBox {
+    fn max_switch(&self) -> AlpacaResult<i32> { Ok(4) } // 4 channels
+    fn can_write(&self, id: u32) -> AlpacaResult<bool> { Ok(true) }
+    fn get_switch(&self, id: u32) -> AlpacaResult<bool> { /* ... */ }
+    fn set_switch(&self, id: u32, state: bool) -> AlpacaResult<()> { /* ... */ }
+    fn get_switch_value(&self, id: u32) -> AlpacaResult<f64> { /* ... */ }
+    fn set_switch_value(&self, id: u32, value: f64) -> AlpacaResult<()> { /* ... */ }
+    fn min_switch_value(&self, id: u32) -> AlpacaResult<f64> { Ok(0.0) }
+    fn max_switch_value(&self, id: u32) -> AlpacaResult<f64> { Ok(1.0) }
+    fn switch_step(&self, id: u32) -> AlpacaResult<f64> { Ok(1.0) }
+    // ISwitchV3 async methods optional: can_async, set_async, set_async_value, etc.
+}
+```
+
+### Camera
+
+The most complex device type. Key capability groups:
+
+- **Exposure**: `start_exposure`, `stop_exposure`, `abort_exposure`, `image_ready`, `image_array`
+- **Binning**: `bin_x/y`, `max_bin_x/y`, `can_asymmetric_bin`
+- **Subframe**: `start_x/y`, `num_x/y`
+- **Cooling**: `cooler_on`, `set_ccd_temperature`, `cooler_power` (gated by `can_set_ccd_temperature`)
+- **Gain**: Two mutually exclusive modes:
+  - *Numeric*: `gain`, `gain_min`, `gain_max` — `gains()` returns NotImplemented
+  - *Named*: `gains()` returns a list — `gain_min/gain_max` return NotImplemented
+- **Offset**: Same two modes as gain (`offset`/`offset_min`/`offset_max` vs `offsets()`)
+- **Pulse guide**: `pulse_guide`, `is_pulse_guiding` (gated by `can_pulse_guide`)
+- **Image data**: `ImageData` enum with 2D/3D i32/i16 arrays, plus ImageBytes binary encoding
+
+### Telescope
+
+The most method-rich device (~60 methods). Key areas:
+
+- **Coordinates**: `right_ascension`, `declination`, `altitude`, `azimuth`, `sidereal_time`
+- **Slewing**: `slew_to_coordinates[_async]`, `slew_to_alt_az[_async]`, `slew_to_target[_async]`
+- **Tracking**: `tracking`, `set_tracking`, `tracking_rate`, `right_ascension_rate`, `declination_rate`
+- **Guiding**: `pulse_guide`, `guide_rate_right_ascension/declination`
+- **German equatorial**: `side_of_pier`, `set_side_of_pier`, `destination_side_of_pier`
+- **Site**: `site_latitude`, `site_longitude`, `site_elevation`
+
+Important ASCOM semantics:
+- Sidereal tracking does NOT change the reported RA — the mount compensates for Earth's rotation
+- Only `RightAscensionRate` (offset from sidereal) causes RA drift
+- Guide rates are in degrees per sidereal second (RA) or degrees per SI second (Dec)
+
+### Domain Types
+
+All ASCOM enums serialize to their integer values via `serde_repr`:
+
+```rust
+use ascom_alpaca_core::camera::{CameraState, SensorType};
+use ascom_alpaca_core::telescope::{AlignmentMode, DriveRate, SideOfPier};
+use ascom_alpaca_core::dome::ShutterState;
+use ascom_alpaca_core::cover_calibrator::{CoverState, CalibratorState};
+use ascom_alpaca_core::types::GuideDirection;
+
+let state = CameraState::Exposing; // serializes as 2
+let side = SideOfPier::East; // serializes as 0
 ```
 
 ## Feature Flags
 
-All device types are enabled by default via the `all-devices` feature.
-Disable defaults and pick only what you need:
+All device types are enabled by default. Disable defaults to reduce binary size on embedded:
 
 ```toml
 [dependencies]
 ascom-alpaca-core = { version = "0.1", default-features = false, features = ["safety_monitor", "switch"] }
 ```
 
-| Feature | Device Type |
-|---------|-------------|
-| `camera` | Camera (~55 methods) |
-| `cover_calibrator` | CoverCalibrator (12 methods) |
-| `dome` | Dome (22 methods) |
-| `filter_wheel` | FilterWheel (7 methods) |
-| `focuser` | Focuser (12 methods) |
-| `observing_conditions` | ObservingConditions (15 methods) |
-| `rotator` | Rotator (12 methods) |
-| `safety_monitor` | SafetyMonitor (1 method) |
-| `switch` | Switch (12 methods) |
-| `telescope` | Telescope (~60 methods) |
-| `all-devices` | All of the above (default) |
+| Feature | Device Type | Methods |
+|---------|-------------|---------|
+| `camera` | Camera | ~55 |
+| `cover_calibrator` | CoverCalibrator | 12 |
+| `dome` | Dome | 22 |
+| `filter_wheel` | FilterWheel | 7 |
+| `focuser` | Focuser | 12 |
+| `observing_conditions` | ObservingConditions | 15 |
+| `rotator` | Rotator | 12 |
+| `safety_monitor` | SafetyMonitor | 1 |
+| `switch` | Switch | 16 |
+| `telescope` | Telescope | ~60 |
+| `all-devices` | All of the above | (default) |
+| `conformu` | ConformU test harness | Adds tiny_http, dispatch layer, mock devices |
+
+## Integration Guide
+
+### Wiring to an HTTP Server
+
+This crate provides protocol types only — you bring your own HTTP server. Here's the pattern:
+
+```rust
+use ascom_alpaca_core::prelude::*;
+use ascom_alpaca_core::types::params::normalize_params;
+
+// 1. Parse the URL: /api/v1/{device_type}/{device_number}/{method}
+// 2. Extract query params + PUT body params, normalize keys to lowercase
+// 3. Look up the device in the registry
+// 4. Call the trait method
+// 5. Build the response envelope
+
+fn handle_request(
+    registry: &DeviceRegistry,
+    device_type: DeviceType,
+    device_number: u32,
+    method: &str,
+    params: &HashMap<String, String>,
+    is_put: bool,
+    server_tx: u32,
+) -> String {
+    let client_tx: u32 = params.get("clienttransactionid")
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(0);
+
+    match device_type {
+        DeviceType::SafetyMonitor => {
+            let dev = registry.get_safety_monitor(device_number).unwrap();
+            match (method, is_put) {
+                ("issafe", false) => {
+                    match dev.is_safe() {
+                        Ok(v) => serde_json::to_string(
+                            &AlpacaResponse::ok(v).with_transaction(client_tx, server_tx)
+                        ).unwrap(),
+                        Err(e) => serde_json::to_string(
+                            &AlpacaResponse::<bool>::from_error(e).with_transaction(client_tx, server_tx)
+                        ).unwrap(),
+                    }
+                }
+                _ => { /* handle other methods */ todo!() }
+            }
+        }
+        // ... other device types
+        _ => todo!()
+    }
+}
+```
+
+### Management API
+
+Every Alpaca server must expose three management endpoints:
+
+```rust
+use ascom_alpaca_core::management::*;
+
+// GET /management/apiversions → [1]
+let versions = ApiVersions { value: vec![1] };
+
+// GET /management/v1/description → server info
+let desc = ServerDescription {
+    server_name: "My Server".into(),
+    manufacturer: "Acme".into(),
+    manufacturer_version: "1.0".into(),
+    location: "Home".into(),
+};
+
+// GET /management/v1/configureddevices → device list
+let devices = registry.configured_devices();
+```
+
+### UDP Discovery
+
+Alpaca clients discover servers via UDP broadcast on port 32227:
+
+```rust
+use ascom_alpaca_core::discovery::*;
+
+// Listen for "alpacadiscovery1" on port 32227
+// Respond with: {"AlpacaPort": 32888}
+let response = DiscoveryResponse { alpaca_port: 32888 };
+```
+
+### ESP32 / Embedded
+
+The crate has no `std` networking dependency. For ESP32:
+
+```toml
+[dependencies]
+ascom-alpaca-core = { version = "0.1", default-features = false, features = ["safety_monitor"] }
+```
+
+Use with `esp_http_server` (C bindings) or any ESP-IDF HTTP server. The response types serialize to JSON via serde, which you send as the HTTP response body.
+
+## ConformU Validation
+
+The `conformu` feature provides a complete test harness for validating your protocol implementation against the [ASCOM ConformU](https://github.com/ASCOMInitiative/ConformU) conformance checker:
+
+```bash
+cargo run --example conformu_harness --features conformu
+# Then run ConformU against http://127.0.0.1:32888
+```
+
+The harness includes:
+- Mock implementations for all 10 device types with configurable capabilities
+- Complete URL-to-trait dispatch layer (`dispatch_request`)
+- Management API handlers
+- All 11 mock devices pass ConformU with 0 errors, 0 issues
+
+### Using the Dispatch Layer
+
+The `conformu` dispatch module provides a ready-made URL router:
+
+```rust
+use ascom_alpaca_core::conformu::dispatch::{dispatch_request, parse_device_path, AlpacaRequest};
+
+if let Some((device_type, device_number, method)) = parse_device_path(&url_path) {
+    let req = AlpacaRequest {
+        device_type,
+        device_number,
+        method,
+        params,     // HashMap<String, String>
+        is_put,     // true for PUT requests
+    };
+    let (json_body, status_code) = dispatch_request(&registry, &req, server_tx);
+    // Send json_body as HTTP response
+}
+```
+
+### Mock Devices for Testing
+
+Each mock is configurable. Example with Camera feature flags:
+
+```rust
+use ascom_alpaca_core::conformu::mocks::camera::{MockCamera, CameraFeatures, GainOffsetMode};
+
+// Minimal camera
+let cam = MockCamera::new();
+
+// Full-featured with numeric gain
+let cam = MockCamera::full_featured();
+
+// Color camera with named gain/offset
+let cam = MockCamera::with_features(CameraFeatures {
+    cooler: true,
+    pulse_guide: true,
+    gain_mode: GainOffsetMode::Named(vec!["Low".into(), "High".into()]),
+    offset_mode: GainOffsetMode::Named(vec!["Normal".into(), "Low Noise".into()]),
+    sensor_type: SensorType::RGGB,
+    ..Default::default()
+});
+```
 
 ## Comparison with `ascom-alpaca`
 
-The [`ascom-alpaca`](https://crates.io/crates/ascom-alpaca) crate provides a full Alpaca client+server built on axum+tokio.
-It cannot compile on ESP32 or other embedded targets.
+| | `ascom-alpaca-core` | `ascom-alpaca` |
+|---|---|---|
+| Protocol types | Yes | Yes |
+| HTTP server | No (bring your own) | Built-in (axum) |
+| Async runtime | None required | tokio required |
+| ESP32 compatible | Yes | No |
+| Binary size impact | Minimal (~types only) | Large (pulls in tokio, hyper, axum) |
+| ConformU harness | Optional feature | No |
 
-`ascom-alpaca-core` provides only the protocol layer — types, traits, and serialization — with no transport dependency.
-Use it with any HTTP framework (esp-idf, axum, actix, warp) on any target.
+Use `ascom-alpaca-core` when:
+- You need ESP32 or embedded support
+- You have your own HTTP server (esp-idf, actix, warp, etc.)
+- You want minimal dependencies
+- You need the dispatch/mock layer for testing
+
+Use [`ascom-alpaca`](https://crates.io/crates/ascom-alpaca) when:
+- You want batteries-included client+server on desktop
+- You're already using tokio/axum
 
 ## MSRV
 

@@ -26,10 +26,15 @@ impl Device for MockSafetyMonitor {
     fn description(&self) -> AlpacaResult<String> { Ok("Mock SafetyMonitor for ConformU testing".into()) }
     fn driver_info(&self) -> AlpacaResult<String> { Ok("ascom-alpaca-core mock driver".into()) }
     fn driver_version(&self) -> AlpacaResult<String> { Ok(env!("CARGO_PKG_VERSION").into()) }
-    fn interface_version(&self) -> AlpacaResult<i32> { Ok(1) }
+    fn interface_version(&self) -> AlpacaResult<i32> { Ok(3) }
     fn name(&self) -> AlpacaResult<String> { Ok("Mock Safety Monitor".into()) }
     fn supported_actions(&self) -> AlpacaResult<Vec<String>> { Ok(vec![]) }
-    fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> { Ok(vec![]) }
+    fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> {
+        use crate::device::common::DeviceStateItem;
+        Ok(vec![
+            DeviceStateItem { name: "IsSafe".into(), value: serde_json::json!(true) },
+        ])
+    }
 }
 
 impl SafetyMonitor for MockSafetyMonitor {

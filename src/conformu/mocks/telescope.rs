@@ -30,6 +30,7 @@ pub struct MockTelescope {
     rate_base_ra: Mutex<f64>,
     rate_base_dec: Mutex<f64>,
     rate_set_at: Mutex<Option<Instant>>,
+    slew_settle_time: Mutex<i32>,
     does_refraction: Mutex<bool>,
     pulse_guiding: Mutex<bool>,
     move_axis_active: Mutex<bool>,
@@ -62,6 +63,7 @@ impl MockTelescope {
             rate_base_ra: Mutex::new(12.0),
             rate_base_dec: Mutex::new(45.0),
             rate_set_at: Mutex::new(None),
+            slew_settle_time: Mutex::new(0),
             does_refraction: Mutex::new(false),
             pulse_guiding: Mutex::new(false),
             move_axis_active: Mutex::new(false),
@@ -163,7 +165,7 @@ impl Device for MockTelescope {
         Ok(env!("CARGO_PKG_VERSION").into())
     }
     fn interface_version(&self) -> AlpacaResult<i32> {
-        Ok(3)
+        Ok(4)
     }
     fn name(&self) -> AlpacaResult<String> {
         Ok("Mock Telescope".into())
@@ -172,7 +174,23 @@ impl Device for MockTelescope {
         Ok(vec![])
     }
     fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> {
-        Ok(vec![])
+        use crate::device::common::DeviceStateItem;
+        self.check_slew_complete();
+        let slewing = self.slew_start.lock().unwrap().is_some()
+            || *self.move_axis_active.lock().unwrap();
+        Ok(vec![
+            DeviceStateItem { name: "Altitude".into(), value: serde_json::json!(*self.altitude.lock().unwrap()) },
+            DeviceStateItem { name: "AtHome".into(), value: serde_json::json!(*self.at_home.lock().unwrap()) },
+            DeviceStateItem { name: "AtPark".into(), value: serde_json::json!(*self.at_park.lock().unwrap()) },
+            DeviceStateItem { name: "Azimuth".into(), value: serde_json::json!(*self.azimuth.lock().unwrap()) },
+            DeviceStateItem { name: "Declination".into(), value: serde_json::json!(*self.dec.lock().unwrap()) },
+            DeviceStateItem { name: "IsPulseGuiding".into(), value: serde_json::json!(*self.pulse_guiding.lock().unwrap()) },
+            DeviceStateItem { name: "RightAscension".into(), value: serde_json::json!(*self.ra.lock().unwrap()) },
+            DeviceStateItem { name: "SideOfPier".into(), value: serde_json::json!(0) },
+            DeviceStateItem { name: "Slewing".into(), value: serde_json::json!(slewing) },
+            DeviceStateItem { name: "Tracking".into(), value: serde_json::json!(*self.tracking.lock().unwrap()) },
+            DeviceStateItem { name: "UTCDate".into(), value: serde_json::json!(self.utc_date().unwrap_or_default()) },
+        ])
     }
 }
 
@@ -808,6 +826,20 @@ impl Telescope for MockTelescope {
 
     fn focal_length(&self) -> AlpacaResult<f64> {
         Ok(1.0)
+    }
+
+    fn slew_settle_time(&self) -> AlpacaResult<i32> {
+        Ok(*self.slew_settle_time.lock().unwrap())
+    }
+
+    fn set_slew_settle_time(&self, settle_time: i32) -> AlpacaResult<()> {
+        if settle_time < 0 {
+            return Err(AlpacaError::InvalidValue(format!(
+                "SlewSettleTime must be >= 0, got {settle_time}"
+            )));
+        }
+        *self.slew_settle_time.lock().unwrap() = settle_time;
+        Ok(())
     }
 
     fn does_refraction(&self) -> AlpacaResult<bool> {

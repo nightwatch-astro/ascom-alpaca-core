@@ -102,24 +102,22 @@ impl MockTelescope {
 
     /// Compute side of pier from hour angle.
     ///
-    /// ASCOM SideOfPier reports the **pointing state**, not the physical side:
-    /// - pierEast (0) = "Normal" pointing state. For a GEM, the OTA is on the
-    ///   **east** side of the pier, looking **west** (object HA between -6h and 0h,
-    ///   i.e. east of meridian, not yet crossed).
-    /// - pierWest (1) = "Through the pole" pointing state. OTA is on the **west**
-    ///   side, looking **east** (object HA between 0h and +6h, west of meridian).
-    ///
-    /// ConformU validates this convention precisely.
+    /// ASCOM SideOfPier for a GEM:
+    /// - pierEast (0) = "Normal" — counterweight down, OTA on east side, looking west.
+    ///   This is the normal tracking position when the object is WEST of the meridian
+    ///   (positive HA, object has crossed the meridian).
+    /// - pierWest (1) = "Through the pole" — OTA on west side, looking east.
+    ///   Object is EAST of the meridian (negative HA, before crossing).
     fn compute_side_of_pier(&self, ra: f64, lst: f64) -> AlpacaResult<SideOfPier> {
         let ha = lst - ra;
         // Normalize HA to [-12, +12)
         let ha_norm = ((ha % 24.0) + 36.0) % 24.0 - 12.0;
         if ha_norm >= 0.0 {
-            // Positive HA: object is west of meridian → OTA on west side → pierWest
-            Ok(SideOfPier::West)
-        } else {
-            // Negative HA: object is east of meridian → OTA on east side → pierEast
+            // Positive HA: object west of meridian → normal tracking → pierEast
             Ok(SideOfPier::East)
+        } else {
+            // Negative HA: object east of meridian → through the pole → pierWest
+            Ok(SideOfPier::West)
         }
     }
 

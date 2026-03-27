@@ -12,6 +12,9 @@ pub mod discovery;
 pub mod management;
 pub mod registry;
 
+#[cfg(feature = "conformu")]
+pub mod conformu;
+
 #[cfg(feature = "camera")]
 pub mod camera;
 #[cfg(feature = "cover_calibrator")]

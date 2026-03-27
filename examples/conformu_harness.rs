@@ -24,16 +24,16 @@ use ascom_alpaca_core::telescope::Telescope;
 fn main() {
     let mut registry = DeviceRegistry::new();
 
-    let sm: Box<dyn SafetyMonitor> = Box::new(mocks::safety_monitor::MockSafetyMonitor);
+    let sm: Box<dyn SafetyMonitor> = Box::new(mocks::safety_monitor::MockSafetyMonitor::new());
     let cam: Box<dyn Camera> = Box::new(mocks::camera::MockCamera::new());
-    let sw: Box<dyn Switch> = Box::new(mocks::switch::MockSwitch);
-    let cc: Box<dyn CoverCalibrator> = Box::new(mocks::cover_calibrator::MockCoverCalibrator);
-    let dome: Box<dyn Dome> = Box::new(mocks::dome::MockDome);
-    let fw: Box<dyn FilterWheel> = Box::new(mocks::filter_wheel::MockFilterWheel);
-    let foc: Box<dyn Focuser> = Box::new(mocks::focuser::MockFocuser);
-    let oc: Box<dyn ObservingConditions> = Box::new(mocks::observing_conditions::MockObservingConditions);
-    let rot: Box<dyn Rotator> = Box::new(mocks::rotator::MockRotator);
-    let tel: Box<dyn Telescope> = Box::new(mocks::telescope::MockTelescope);
+    let sw: Box<dyn Switch> = Box::new(mocks::switch::MockSwitch::new());
+    let cc: Box<dyn CoverCalibrator> = Box::new(mocks::cover_calibrator::MockCoverCalibrator::new());
+    let dome: Box<dyn Dome> = Box::new(mocks::dome::MockDome::new());
+    let fw: Box<dyn FilterWheel> = Box::new(mocks::filter_wheel::MockFilterWheel::new());
+    let foc: Box<dyn Focuser> = Box::new(mocks::focuser::MockFocuser::new());
+    let oc: Box<dyn ObservingConditions> = Box::new(mocks::observing_conditions::MockObservingConditions::new());
+    let rot: Box<dyn Rotator> = Box::new(mocks::rotator::MockRotator::new());
+    let tel: Box<dyn Telescope> = Box::new(mocks::telescope::MockTelescope::new());
 
     registry.register(sm);
     registry.register(cam);

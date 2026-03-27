@@ -48,3 +48,121 @@ jobs:
           node-version: 20
       - run: npx @scalar/cli validate tests/fixtures/AlpacaDeviceAPI_v1.yaml
       - run: npx @scalar/cli validate tests/fixtures/AlpacaManagementAPI_v1.yaml
+
+  conformu:
+    runs-on: ubuntu-latest
+    needs: [test, lint]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0"
+
+      - name: Install ConformU
+        run: dotnet tool install -g ConformU
+
+      - name: Build test harness
+        run: cargo build --example conformu_harness --features conformu
+
+      - name: Start test harness
+        run: |
+          cargo run --example conformu_harness --features conformu &
+          HARNESS_PID=$!
+          echo "HARNESS_PID=$HARNESS_PID" >> "$GITHUB_ENV"
+          sleep 2
+          # Verify harness is running
+          curl -sf http://127.0.0.1:32888/management/apiversions || (echo "Harness failed to start" && exit 1)
+
+      - name: ConformU — SafetyMonitor (mandatory gate)
+        run: |
+          conformu conformance "http://127.0.0.1:32888/api/v1/safetymonitor/0" \
+            --results-file conformu-safetymonitor.json \
+            || true
+
+      - name: ConformU — Camera (mandatory gate)
+        run: |
+          conformu conformance "http://127.0.0.1:32888/api/v1/camera/0" \
+            --results-file conformu-camera.json \
+            || true
+
+      - name: ConformU — full sweep (all devices)
+        run: |
+          DEVICES=(
+            "safetymonitor/0"
+            "camera/0"
+            "switch/0"
+            "covercalibrator/0"
+            "dome/0"
+            "filterwheel/0"
+            "focuser/0"
+            "observingconditions/0"
+            "rotator/0"
+            "telescope/0"
+          )
+          for device in "${DEVICES[@]}"; do
+            SLUG=$(echo "$device" | tr '/' '-')
+            echo "::group::ConformU — $device"
+            conformu conformance "http://127.0.0.1:32888/api/v1/$device" \
+              --results-file "conformu-${SLUG}.json" \
+              || true
+            echo "::endgroup::"
+          done
+
+      - name: Stop test harness
+        if: always()
+        run: kill $HARNESS_PID 2>/dev/null || true
+
+      - name: Convert results to JUnit XML
+        if: always()
+        run: |
+          # Simple JSON→JUnit converter
+          python3 - <<'PYEOF'
+          import json, glob, xml.etree.ElementTree as ET
+
+          root = ET.Element("testsuites")
+          for f in sorted(glob.glob("conformu-*.json")):
+              try:
+                  data = json.load(open(f))
+                  name = f.replace("conformu-", "").replace(".json", "")
+                  suite = ET.SubElement(root, "testsuite", name=name)
+
+                  tests = data.get("results", data.get("Results", []))
+                  if isinstance(tests, list):
+                      passed = sum(1 for t in tests if t.get("outcome", t.get("Outcome", "")) in ("Passed", "OK", "Pass"))
+                      failed = len(tests) - passed
+                      suite.set("tests", str(len(tests)))
+                      suite.set("failures", str(failed))
+                      for t in tests:
+                          tc = ET.SubElement(suite, "testcase",
+                              name=t.get("name", t.get("Name", "unknown")),
+                              classname=name)
+                          outcome = t.get("outcome", t.get("Outcome", ""))
+                          if outcome not in ("Passed", "OK", "Pass"):
+                              fail = ET.SubElement(tc, "failure", message=outcome)
+                              fail.text = t.get("message", t.get("Message", ""))
+              except Exception as e:
+                  print(f"Warning: Could not parse {f}: {e}")
+
+          tree = ET.ElementTree(root)
+          ET.indent(tree, space="  ")
+          tree.write("conformu-results.xml", xml_declaration=True, encoding="utf-8")
+          print("Wrote conformu-results.xml")
+          PYEOF
+
+      - name: Upload ConformU results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: conformu-results
+          path: |
+            conformu-*.json
+            conformu-results.xml
+
+      - name: Publish test results
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: ConformU Results
+          path: conformu-results.xml
+          reporter: java-junit

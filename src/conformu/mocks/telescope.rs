@@ -1,18 +1,30 @@
+use std::sync::Mutex;
+
 use crate::device::Device;
 use crate::telescope::{AlignmentMode, EquatorialSystem, Telescope};
 use crate::types::{AlpacaResult, DeviceType};
 
-pub struct MockTelescope;
+pub struct MockTelescope {
+    connected: Mutex<bool>,
+}
+
+impl MockTelescope {
+    pub fn new() -> Self {
+        Self {
+            connected: Mutex::new(false),
+        }
+    }
+}
 
 impl Device for MockTelescope {
     fn static_name(&self) -> &str { "Mock Telescope" }
     fn unique_id(&self) -> &str { "mock-tel-001" }
     fn device_type(&self) -> DeviceType { DeviceType::Telescope }
-    fn connected(&self) -> AlpacaResult<bool> { Ok(true) }
-    fn set_connected(&self, _: bool) -> AlpacaResult<()> { Ok(()) }
+    fn connected(&self) -> AlpacaResult<bool> { Ok(*self.connected.lock().unwrap()) }
+    fn set_connected(&self, v: bool) -> AlpacaResult<()> { *self.connected.lock().unwrap() = v; Ok(()) }
     fn connecting(&self) -> AlpacaResult<bool> { Ok(false) }
-    fn connect(&self) -> AlpacaResult<()> { Ok(()) }
-    fn disconnect(&self) -> AlpacaResult<()> { Ok(()) }
+    fn connect(&self) -> AlpacaResult<()> { *self.connected.lock().unwrap() = true; Ok(()) }
+    fn disconnect(&self) -> AlpacaResult<()> { *self.connected.lock().unwrap() = false; Ok(()) }
     fn description(&self) -> AlpacaResult<String> { Ok("Mock Telescope".into()) }
     fn driver_info(&self) -> AlpacaResult<String> { Ok("ascom-alpaca-core mock".into()) }
     fn driver_version(&self) -> AlpacaResult<String> { Ok(env!("CARGO_PKG_VERSION").into()) }

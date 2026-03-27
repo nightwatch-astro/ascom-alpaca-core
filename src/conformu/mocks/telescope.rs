@@ -672,13 +672,20 @@ impl Telescope for MockTelescope {
         self.compute_side_of_pier(ra, lst)
     }
 
-    fn set_side_of_pier(&self, _side: SideOfPier) -> AlpacaResult<()> {
+    fn set_side_of_pier(&self, side: SideOfPier) -> AlpacaResult<()> {
         self.check_not_parked()?;
-        // For a GEM, setting the side of pier triggers a meridian flip.
-        // The telescope slews to point at the same RA/Dec from the other physical side.
-        // Our mock's side_of_pier() is computed from hour angle, so a flip happens
-        // naturally as the object crosses the meridian. We just accept the command.
-        // ConformU will verify by waiting for the meridian crossing.
+        // Meridian flip: move the telescope to observe the same RA/Dec from the
+        // requested pier side. We adjust the stored RA to flip the hour angle sign,
+        // which changes the computed side_of_pier().
+        let current = self.side_of_pier()?;
+        if current != side {
+            // Mirror RA across the current LST to flip the hour angle
+            let lst = self.sidereal_time()?;
+            let current_ra = *self.ra.lock().unwrap();
+            let new_ra = ((2.0 * lst - current_ra) % 24.0 + 24.0) % 24.0;
+            *self.ra.lock().unwrap() = new_ra;
+            *self.rate_base_ra.lock().unwrap() = new_ra;
+        }
         Ok(())
     }
 

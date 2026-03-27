@@ -101,9 +101,7 @@ impl Device for MockSwitch {
     fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> {
         use crate::device::common::DeviceStateItem;
         let values = self.values.lock().unwrap();
-        let mut items = vec![
-            DeviceStateItem { name: "MaxSwitch".into(), value: serde_json::json!(CHANNELS.len()) },
-        ];
+        let mut items = Vec::new();
         for (i, ch) in CHANNELS.iter().enumerate() {
             let val = values[i];
             let bool_val = val >= (ch.min + ch.max) / 2.0;

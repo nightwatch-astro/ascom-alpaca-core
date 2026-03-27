@@ -168,9 +168,9 @@ jobs:
 
       - name: Download ConformU
         run: |
-          curl -sL "https://github.com/ASCOMInitiative/ConformU/releases/download/v${CONFORMU_VERSION}/conformu-linux-x64-${CONFORMU_VERSION}.tar.gz" \
-            -o conformu.tar.gz
-          tar xzf conformu.tar.gz
+          curl -sL "https://github.com/ASCOMInitiative/ConformU/releases/download/v${CONFORMU_VERSION}/conformu.linux-x64.tar.xz" \
+            -o conformu.tar.xz
+          tar xJf conformu.tar.xz
           chmod +x conformu
           echo "$PWD" >> "$GITHUB_PATH"
 

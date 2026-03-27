@@ -8,6 +8,27 @@ use crate::types::{AlpacaError, AlpacaResult, DeviceType};
 /// All other methods have default implementations that return `NotImplemented`.
 ///
 /// Device traits require `Send + Sync` to enable thread-safe dispatch in server contexts.
+///
+/// # Example
+///
+/// ```rust
+/// use ascom_alpaca_core::prelude::*;
+///
+/// struct MyDevice;
+///
+/// impl Device for MyDevice {
+///     fn static_name(&self) -> &str { "My Device" }
+///     fn unique_id(&self) -> &str { "my-device-001" }
+///     fn device_type(&self) -> DeviceType { DeviceType::SafetyMonitor }
+///     fn connected(&self) -> AlpacaResult<bool> { Ok(true) }
+///     fn set_connected(&self, _v: bool) -> AlpacaResult<()> { Ok(()) }
+///     fn description(&self) -> AlpacaResult<String> { Ok("Example device".into()) }
+///     fn driver_info(&self) -> AlpacaResult<String> { Ok("example v1".into()) }
+///     fn driver_version(&self) -> AlpacaResult<String> { Ok("1.0.0".into()) }
+///     fn interface_version(&self) -> AlpacaResult<i32> { Ok(3) }
+///     fn name(&self) -> AlpacaResult<String> { Ok("My Device".into()) }
+/// }
+/// ```
 pub trait Device: Send + Sync {
     // --- Required methods (no defaults) ---
 

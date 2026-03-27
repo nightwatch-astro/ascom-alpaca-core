@@ -6,6 +6,49 @@ use crate::device::Device;
 use crate::types::{AlpacaError, AlpacaResult};
 
 /// ASCOM Telescope device trait (~60 methods).
+///
+/// The most method-rich ASCOM device type. Key areas:
+///
+/// - **Coordinates**: `right_ascension`, `declination`, `altitude`, `azimuth`, `sidereal_time`
+/// - **Slewing**: `slew_to_coordinates[_async]`, `slew_to_alt_az[_async]`, `slew_to_target[_async]`
+/// - **Tracking**: `tracking`, `set_tracking`, `tracking_rate`, `right_ascension_rate`, `declination_rate`
+/// - **Guiding**: `pulse_guide`, `guide_rate_right_ascension`, `guide_rate_declination`
+/// - **German equatorial**: `side_of_pier`, `set_side_of_pier`, `destination_side_of_pier`
+/// - **Parking**: `park`, `unpark`, `at_park`, `set_park`, `find_home`
+/// - **Site**: `site_latitude`, `site_longitude`, `site_elevation`
+///
+/// ## Important ASCOM Semantics
+///
+/// - **Sidereal tracking does NOT change the reported RA.** The mount compensates for
+///   Earth's rotation, keeping the telescope on the same celestial coordinates.
+///   Only `RightAscensionRate` (an offset from sidereal) causes RA to drift.
+/// - **Guide rates** are in degrees per sidereal second (RA) or degrees per SI second (Dec).
+/// - **SideOfPier**: `East` (0) = normal, scope on east side looking west (HA > 0).
+///   `West` (1) = through-the-pole, scope on west side (HA < 0).
+///
+/// # Example
+///
+/// ```rust
+/// use ascom_alpaca_core::prelude::*;
+/// use ascom_alpaca_core::telescope::Telescope;
+///
+/// # struct MyMount;
+/// # impl Device for MyMount {
+/// #     fn static_name(&self) -> &str { "Mount" }
+/// #     fn unique_id(&self) -> &str { "m-001" }
+/// #     fn device_type(&self) -> DeviceType { DeviceType::Telescope }
+/// # }
+/// impl Telescope for MyMount {
+///     fn right_ascension(&self) -> AlpacaResult<f64> { Ok(12.0) }
+///     fn declination(&self) -> AlpacaResult<f64> { Ok(45.0) }
+///     fn tracking(&self) -> AlpacaResult<bool> { Ok(true) }
+///     fn can_slew_async(&self) -> AlpacaResult<bool> { Ok(true) }
+///     fn slew_to_coordinates_async(&self, ra: f64, dec: f64) -> AlpacaResult<()> {
+///         // command your mount hardware
+///         Ok(())
+///     }
+/// }
+/// ```
 pub trait Telescope: Device {
     // --- Position & coordinates ---
 

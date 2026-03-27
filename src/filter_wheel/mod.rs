@@ -1,7 +1,10 @@
 use crate::device::Device;
 use crate::types::{AlpacaError, AlpacaResult};
 
-/// ASCOM FilterWheel device trait.
+/// ASCOM FilterWheel device trait (IFilterWheelV3).
+///
+/// Controls a filter wheel with named positions and focus offsets.
+/// Position is 0-based. Returns -1 while the wheel is moving.
 pub trait FilterWheel: Device {
     /// Returns the current filter wheel position (0-based).
     /// Returns -1 if the wheel is moving.

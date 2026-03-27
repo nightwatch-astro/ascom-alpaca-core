@@ -1,7 +1,11 @@
 use crate::device::Device;
 use crate::types::{AlpacaError, AlpacaResult};
 
-/// ASCOM Focuser device trait.
+/// ASCOM Focuser device trait (IFocuserV4).
+///
+/// Controls a focus motor with absolute or relative positioning and optional
+/// temperature compensation. Key properties: `position`, `max_step`, `is_moving`,
+/// `temp_comp`, `temperature`.
 pub trait Focuser: Device {
     /// Returns whether the focuser supports absolute positioning.
     fn absolute(&self) -> AlpacaResult<bool> {

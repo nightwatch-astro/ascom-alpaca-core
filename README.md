@@ -23,27 +23,27 @@ Implement a device:
 ```rust
 use ascom_alpaca_core::prelude::*;
 
-struct MyWeatherStation {
+struct MySafetyMonitor {
     wind_speed: f64,
-    cloud_cover: f64,
+    mount_powered: bool,
 }
 
-impl Device for MyWeatherStation {
-    fn static_name(&self) -> &str { "My Weather Station" }
-    fn unique_id(&self) -> &str { "weather-001" }
+impl Device for MySafetyMonitor {
+    fn static_name(&self) -> &str { "Observatory Safety" }
+    fn unique_id(&self) -> &str { "safety-001" }
     fn device_type(&self) -> DeviceType { DeviceType::SafetyMonitor }
     fn connected(&self) -> AlpacaResult<bool> { Ok(true) }
     fn set_connected(&self, _v: bool) -> AlpacaResult<()> { Ok(()) }
-    fn description(&self) -> AlpacaResult<String> { Ok("Backyard weather station".into()) }
-    fn driver_info(&self) -> AlpacaResult<String> { Ok("my-weather v1.0".into()) }
+    fn description(&self) -> AlpacaResult<String> { Ok("Observatory safety monitor".into()) }
+    fn driver_info(&self) -> AlpacaResult<String> { Ok("my-safety v1.0".into()) }
     fn driver_version(&self) -> AlpacaResult<String> { Ok("1.0.0".into()) }
     fn interface_version(&self) -> AlpacaResult<i32> { Ok(3) }
-    fn name(&self) -> AlpacaResult<String> { Ok("My Weather Station".into()) }
+    fn name(&self) -> AlpacaResult<String> { Ok("Observatory Safety".into()) }
 }
 
-impl SafetyMonitor for MyWeatherStation {
+impl SafetyMonitor for MySafetyMonitor {
     fn is_safe(&self) -> AlpacaResult<bool> {
-        Ok(self.wind_speed < 30.0 && self.cloud_cover < 80.0)
+        Ok(self.wind_speed < 30.0 && self.mount_powered)
     }
 }
 ```
@@ -100,7 +100,7 @@ The registry stores heterogeneous devices and provides typed lookup. Device numb
 ```rust
 let mut registry = DeviceRegistry::new();
 
-let sm: Box<dyn SafetyMonitor> = Box::new(MyWeatherStation { /* ... */ });
+let sm: Box<dyn SafetyMonitor> = Box::new(MySafetyMonitor { /* ... */ });
 let cam: Box<dyn Camera> = Box::new(MyCamera { /* ... */ });
 registry.register(sm);
 registry.register(cam);
@@ -183,7 +183,7 @@ tracker.record_client(client_id);
 
 | Trait | Methods | Description |
 |-------|---------|-------------|
-| [`SafetyMonitor`](#safetymonitor) | 1 | Weather safety (IsSafe) |
+| [`SafetyMonitor`](#safetymonitor) | 1 | Generic unsafe condition trigger (IsSafe) |
 | [`Switch`](#switch) | 16 | Multi-channel on/off and analog switches |
 | [`Camera`](#camera) | ~55 | Imaging with exposure, binning, gain, cooling |
 | [`CoverCalibrator`](#covercalibrator) | 12 | Flat panel and dust cover control |
@@ -196,12 +196,16 @@ tracker.record_client(client_id);
 
 ### SafetyMonitor
 
-The simplest device — a single `is_safe()` method:
+A generic trigger for unsafe conditions — not just weather. Any condition that should halt imaging operations: wind, rain, cloud cover, door open, power failure, equipment malfunction, dew heater offline, or a dead man's switch timeout. Returns a single boolean: is it safe to continue?
 
 ```rust
 impl SafetyMonitor for MyDevice {
     fn is_safe(&self) -> AlpacaResult<bool> {
-        Ok(self.wind_speed < 30.0 && !self.is_raining)
+        // Combine any conditions that make observing unsafe
+        let weather_ok = self.wind_speed < 30.0 && !self.is_raining;
+        let equipment_ok = self.dew_heater_active && self.mount_powered;
+        let heartbeat_ok = self.last_heartbeat.elapsed() < Duration::from_secs(60);
+        Ok(weather_ok && equipment_ok && heartbeat_ok)
     }
 }
 ```

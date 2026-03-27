@@ -1,7 +1,11 @@
 use crate::device::Device;
 use crate::types::{AlpacaError, AlpacaResult};
 
-/// ASCOM Rotator device trait.
+/// ASCOM Rotator device trait (IRotatorV4).
+///
+/// Camera field rotator with logical and mechanical position tracking.
+/// Supports absolute moves, relative moves, sync, and optional reverse mode.
+/// Positions are in degrees (0 to <360).
 pub trait Rotator: Device {
     /// Returns whether the rotator supports the Reverse method.
     fn can_reverse(&self) -> AlpacaResult<bool> {

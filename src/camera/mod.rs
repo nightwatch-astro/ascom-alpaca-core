@@ -8,6 +8,49 @@ use crate::device::Device;
 use crate::types::{AlpacaError, AlpacaResult};
 
 /// ASCOM Camera device trait (~55 methods).
+///
+/// The most complex ASCOM device type. Capabilities are organized in groups:
+///
+/// - **Exposure**: `start_exposure`, `stop_exposure`, `abort_exposure`, `image_ready`, `image_array`
+/// - **Sensor**: `camera_xsize/ysize`, `pixel_size_x/y`, `sensor_type`, `bayer_offset_x/y`
+/// - **Binning**: `bin_x/y`, `max_bin_x/y`, `can_asymmetric_bin`
+/// - **Subframe**: `start_x/y`, `num_x/y`
+/// - **Cooling**: `cooler_on`, `set_ccd_temperature`, `cooler_power` (gated by `can_set_ccd_temperature`)
+/// - **Gain**: Two mutually exclusive modes:
+///   - *Numeric*: `gain`, `gain_min`, `gain_max` work; `gains()` returns `NotImplemented`
+///   - *Named*: `gains()` returns a name list; `gain_min/gain_max` return `NotImplemented`
+/// - **Offset**: Same two mutually exclusive modes as gain
+/// - **Pulse guide**: `pulse_guide`, `is_pulse_guiding` (gated by `can_pulse_guide`)
+/// - **Readout**: `readout_mode`, `readout_modes`, `fast_readout` (gated by `can_fast_readout`)
+///
+/// All methods default to `NotImplemented` — only override what your hardware supports.
+///
+/// # Example
+///
+/// ```rust
+/// use ascom_alpaca_core::prelude::*;
+/// use ascom_alpaca_core::camera::{Camera, CameraState, ImageData};
+///
+/// # struct MyCam;
+/// # impl Device for MyCam {
+/// #     fn static_name(&self) -> &str { "Cam" }
+/// #     fn unique_id(&self) -> &str { "c-001" }
+/// #     fn device_type(&self) -> DeviceType { DeviceType::Camera }
+/// # }
+/// impl Camera for MyCam {
+///     fn camera_xsize(&self) -> AlpacaResult<i32> { Ok(4656) }
+///     fn camera_ysize(&self) -> AlpacaResult<i32> { Ok(3520) }
+///     fn sensor_type(&self) -> AlpacaResult<ascom_alpaca_core::camera::SensorType> {
+///         Ok(ascom_alpaca_core::camera::SensorType::Monochrome)
+///     }
+///     fn start_exposure(&self, duration: f64, _light: bool) -> AlpacaResult<()> {
+///         // start your hardware exposure
+///         Ok(())
+///     }
+///     fn can_set_ccd_temperature(&self) -> AlpacaResult<bool> { Ok(false) }
+///     fn can_pulse_guide(&self) -> AlpacaResult<bool> { Ok(false) }
+/// }
+/// ```
 pub trait Camera: Device {
     // --- Exposure control ---
 

@@ -27,9 +27,11 @@ pub enum CoverState {
     Error = 5,
 }
 
-/// ASCOM CoverCalibrator device trait.
+/// ASCOM CoverCalibrator device trait (ICoverCalibratorV2).
 ///
-/// Two independent subsystems: a calibrator (flat panel) and a cover (dust cap).
+/// Two independent subsystems: a calibrator (flat panel light source for flat frames)
+/// and a cover (dust cap). Either or both may be present (`CoverState::NotPresent`,
+/// `CalibratorState::NotPresent`). Brightness is 0 to `max_brightness`.
 pub trait CoverCalibrator: Device {
     fn brightness(&self) -> AlpacaResult<i32> {
         Err(AlpacaError::NotImplemented("brightness".into()))

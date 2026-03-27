@@ -15,6 +15,13 @@ pub enum ShutterState {
 }
 
 /// ASCOM Dome device trait.
+/// ASCOM Dome device trait (IDomeV3).
+///
+/// Controls observatory dome rotation and shutter. Capabilities are individually
+/// flagged (`can_find_home`, `can_park`, `can_set_altitude`, `can_set_azimuth`,
+/// `can_set_shutter`, `can_slave`, `can_sync_azimuth`).
+///
+/// Domes can be slaved to a telescope mount so the slit follows the optical path.
 pub trait Dome: Device {
     fn altitude(&self) -> AlpacaResult<f64> {
         Err(AlpacaError::NotImplemented("altitude".into()))

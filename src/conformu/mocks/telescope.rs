@@ -101,18 +101,25 @@ impl MockTelescope {
     }
 
     /// Compute side of pier from hour angle.
-    /// ASCOM defines: pierEast (0) = "Normal" — scope on east side, looking west (HA > 0).
-    /// pierWest (1) = "Through the pole" — scope on west side, looking east (HA < 0).
+    ///
+    /// ASCOM SideOfPier reports the **pointing state**, not the physical side:
+    /// - pierEast (0) = "Normal" pointing state. For a GEM, the OTA is on the
+    ///   **east** side of the pier, looking **west** (object HA between -6h and 0h,
+    ///   i.e. east of meridian, not yet crossed).
+    /// - pierWest (1) = "Through the pole" pointing state. OTA is on the **west**
+    ///   side, looking **east** (object HA between 0h and +6h, west of meridian).
+    ///
+    /// ConformU validates this convention precisely.
     fn compute_side_of_pier(&self, ra: f64, lst: f64) -> AlpacaResult<SideOfPier> {
         let ha = lst - ra;
         // Normalize HA to [-12, +12)
         let ha_norm = ((ha % 24.0) + 36.0) % 24.0 - 12.0;
         if ha_norm >= 0.0 {
-            // Positive HA: object is west of meridian, scope on east side
-            Ok(SideOfPier::East)
-        } else {
-            // Negative HA: object is east of meridian, scope on west side
+            // Positive HA: object is west of meridian → OTA on west side → pierWest
             Ok(SideOfPier::West)
+        } else {
+            // Negative HA: object is east of meridian → OTA on east side → pierEast
+            Ok(SideOfPier::East)
         }
     }
 
@@ -385,6 +392,8 @@ impl Telescope for MockTelescope {
         })?;
         *self.ra.lock().unwrap() = ra;
         *self.dec.lock().unwrap() = dec;
+        *self.rate_base_ra.lock().unwrap() = ra;
+        *self.rate_base_dec.lock().unwrap() = dec;
         Ok(())
     }
 
@@ -449,6 +458,10 @@ impl Telescope for MockTelescope {
     }
 
     fn set_tracking(&self, tracking: bool) -> AlpacaResult<()> {
+        // V4: setting tracking=false while parked must succeed (it's already not tracking)
+        if !tracking && *self.at_park.lock().unwrap() {
+            return Ok(());
+        }
         self.check_not_parked()?;
         *self.tracking.lock().unwrap() = tracking;
         Ok(())
@@ -477,6 +490,13 @@ impl Telescope for MockTelescope {
     }
 
     fn set_right_ascension_rate(&self, rate: f64) -> AlpacaResult<()> {
+        // RA/Dec rate offsets only valid when tracking at sidereal rate
+        let current_rate = *self.tracking_rate.lock().unwrap();
+        if current_rate != DriveRate::Sidereal {
+            return Err(AlpacaError::InvalidOperationException(
+                format!("Cannot set RightAscensionRate when tracking rate is {:?} (must be Sidereal)", current_rate)
+            ));
+        }
         self.check_slew_complete();
         // Snapshot current effective position before changing rates
         // (inline the drift calculation to avoid re-entrant locking)
@@ -510,6 +530,12 @@ impl Telescope for MockTelescope {
     }
 
     fn set_declination_rate(&self, rate: f64) -> AlpacaResult<()> {
+        let current_rate = *self.tracking_rate.lock().unwrap();
+        if current_rate != DriveRate::Sidereal {
+            return Err(AlpacaError::InvalidOperationException(
+                format!("Cannot set DeclinationRate when tracking rate is {:?} (must be Sidereal)", current_rate)
+            ));
+        }
         self.check_slew_complete();
         // Snapshot current effective position before changing rates
         let current_ra = {
@@ -648,21 +674,13 @@ impl Telescope for MockTelescope {
         self.compute_side_of_pier(ra, lst)
     }
 
-    fn set_side_of_pier(&self, side: SideOfPier) -> AlpacaResult<()> {
+    fn set_side_of_pier(&self, _side: SideOfPier) -> AlpacaResult<()> {
         self.check_not_parked()?;
         // For a GEM, setting the side of pier triggers a meridian flip.
-        // Check if we're already on the requested side.
-        let current = self.side_of_pier()?;
-        if current != side {
-            // Meridian flip: the telescope slews to point at the same sky position
-            // but from the other side of the pier. The RA/Dec target stays the same,
-            // but the mount physically flips. For our mock, we adjust the stored RA
-            // by 12h to move to the other side of the meridian.
-            let mut ra = self.ra.lock().unwrap();
-            *ra = (*ra + 12.0) % 24.0;
-            let mut base = self.rate_base_ra.lock().unwrap();
-            *base = (*base + 12.0) % 24.0;
-        }
+        // The telescope slews to point at the same RA/Dec from the other physical side.
+        // Our mock's side_of_pier() is computed from hour angle, so a flip happens
+        // naturally as the object crosses the meridian. We just accept the command.
+        // ConformU will verify by waiting for the meridian crossing.
         Ok(())
     }
 
@@ -804,6 +822,8 @@ impl Telescope for MockTelescope {
         })?;
         *self.ra.lock().unwrap() = ra;
         *self.dec.lock().unwrap() = dec;
+        *self.rate_base_ra.lock().unwrap() = ra;
+        *self.rate_base_dec.lock().unwrap() = dec;
         Ok(())
     }
 

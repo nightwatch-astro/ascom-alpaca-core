@@ -29,6 +29,7 @@ impl Device for MockSafetyMonitor {
     fn interface_version(&self) -> AlpacaResult<i32> { Ok(1) }
     fn name(&self) -> AlpacaResult<String> { Ok("Mock Safety Monitor".into()) }
     fn supported_actions(&self) -> AlpacaResult<Vec<String>> { Ok(vec![]) }
+    fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> { Ok(vec![]) }
 }
 
 impl SafetyMonitor for MockSafetyMonitor {

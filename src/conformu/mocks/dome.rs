@@ -6,12 +6,20 @@ use crate::types::{AlpacaResult, DeviceType};
 
 pub struct MockDome {
     connected: Mutex<bool>,
+    shutter: Mutex<ShutterState>,
+    at_home: Mutex<bool>,
+    at_park: Mutex<bool>,
+    azimuth: Mutex<f64>,
 }
 
 impl MockDome {
     pub fn new() -> Self {
         Self {
             connected: Mutex::new(false),
+            shutter: Mutex::new(ShutterState::Closed),
+            at_home: Mutex::new(true),
+            at_park: Mutex::new(false),
+            azimuth: Mutex::new(180.0),
         }
     }
 }
@@ -31,22 +39,45 @@ impl Device for MockDome {
     fn interface_version(&self) -> AlpacaResult<i32> { Ok(2) }
     fn name(&self) -> AlpacaResult<String> { Ok("Mock Dome".into()) }
     fn supported_actions(&self) -> AlpacaResult<Vec<String>> { Ok(vec![]) }
+    fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> { Ok(vec![]) }
 }
 
 impl Dome for MockDome {
     fn altitude(&self) -> AlpacaResult<f64> { Ok(90.0) }
-    fn azimuth(&self) -> AlpacaResult<f64> { Ok(180.0) }
-    fn at_home(&self) -> AlpacaResult<bool> { Ok(true) }
-    fn at_park(&self) -> AlpacaResult<bool> { Ok(false) }
-    fn shutter_status(&self) -> AlpacaResult<ShutterState> { Ok(ShutterState::Closed) }
+    fn azimuth(&self) -> AlpacaResult<f64> { Ok(*self.azimuth.lock().unwrap()) }
+    fn at_home(&self) -> AlpacaResult<bool> { Ok(*self.at_home.lock().unwrap()) }
+    fn at_park(&self) -> AlpacaResult<bool> { Ok(*self.at_park.lock().unwrap()) }
+    fn shutter_status(&self) -> AlpacaResult<ShutterState> { Ok(*self.shutter.lock().unwrap()) }
     fn slaved(&self) -> AlpacaResult<bool> { Ok(false) }
     fn slewing(&self) -> AlpacaResult<bool> { Ok(false) }
     fn can_find_home(&self) -> AlpacaResult<bool> { Ok(true) }
     fn can_park(&self) -> AlpacaResult<bool> { Ok(true) }
     fn can_set_altitude(&self) -> AlpacaResult<bool> { Ok(false) }
-    fn can_set_azimuth(&self) -> AlpacaResult<bool> { Ok(true) }
+    fn can_set_azimuth(&self) -> AlpacaResult<bool> { Ok(false) }
     fn can_set_park(&self) -> AlpacaResult<bool> { Ok(false) }
     fn can_set_shutter(&self) -> AlpacaResult<bool> { Ok(true) }
     fn can_slave(&self) -> AlpacaResult<bool> { Ok(false) }
     fn can_sync_azimuth(&self) -> AlpacaResult<bool> { Ok(false) }
+
+    fn open_shutter(&self) -> AlpacaResult<()> {
+        *self.shutter.lock().unwrap() = ShutterState::Open;
+        Ok(())
+    }
+
+    fn close_shutter(&self) -> AlpacaResult<()> {
+        *self.shutter.lock().unwrap() = ShutterState::Closed;
+        Ok(())
+    }
+
+    fn park(&self) -> AlpacaResult<()> {
+        *self.at_park.lock().unwrap() = true;
+        Ok(())
+    }
+
+    fn find_home(&self) -> AlpacaResult<()> {
+        *self.at_home.lock().unwrap() = true;
+        Ok(())
+    }
+
+    fn abort_slew(&self) -> AlpacaResult<()> { Ok(()) }
 }

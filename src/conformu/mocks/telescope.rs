@@ -187,6 +187,7 @@ impl Device for MockTelescope {
             DeviceStateItem { name: "IsPulseGuiding".into(), value: serde_json::json!(*self.pulse_guiding.lock().unwrap()) },
             DeviceStateItem { name: "RightAscension".into(), value: serde_json::json!(*self.ra.lock().unwrap()) },
             DeviceStateItem { name: "SideOfPier".into(), value: serde_json::json!(0) },
+            DeviceStateItem { name: "SiderealTime".into(), value: serde_json::json!(self.sidereal_time().unwrap_or(0.0)) },
             DeviceStateItem { name: "Slewing".into(), value: serde_json::json!(slewing) },
             DeviceStateItem { name: "Tracking".into(), value: serde_json::json!(*self.tracking.lock().unwrap()) },
             DeviceStateItem { name: "UTCDate".into(), value: serde_json::json!(self.utc_date().unwrap_or_default()) },

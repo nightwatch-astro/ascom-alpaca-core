@@ -191,7 +191,9 @@ impl Device for MockCamera {
             DeviceStateItem { name: "CameraState".into(), value: serde_json::json!(state as i32) },
             DeviceStateItem { name: "CCDTemperature".into(), value: serde_json::json!(-10.0) },
             DeviceStateItem { name: "ImageReady".into(), value: serde_json::json!(*self.image_ready.lock().unwrap()) },
+            DeviceStateItem { name: "HeatSinkTemperature".into(), value: serde_json::json!(25.0) },
             DeviceStateItem { name: "IsPulseGuiding".into(), value: serde_json::json!(false) },
+            DeviceStateItem { name: "PercentCompleted".into(), value: serde_json::json!(0) },
         ];
         if self.features.cooler {
             items.push(DeviceStateItem { name: "CoolerPower".into(), value: serde_json::json!(if *self.cooler_on.lock().unwrap() { 50.0 } else { 0.0 }) });

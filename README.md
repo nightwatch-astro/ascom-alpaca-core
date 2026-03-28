@@ -15,7 +15,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-ascom-alpaca-core = "0.1.0" # x-release-please-version
+ascom-alpaca-core = "0.1"
 ```
 
 Implement a device:

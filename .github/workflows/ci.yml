@@ -21,6 +21,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo test --all-features
       - run: cargo test --no-default-features
+      - name: Verify publishable
+        run: cargo publish --dry-run
 
   lint:
     runs-on: ubuntu-latest

@@ -30,7 +30,7 @@
   },
   "CameraFirstUseTests": true,
   "CameraTestImageArrayVariant": true,
-  "CameraExposureDuration": 0.1,
+  "CameraExposureDuration": 1.0,
   "CameraMaxBinX": 0,
   "CameraMaxBinY": 0,
   "CameraXMax": 0,

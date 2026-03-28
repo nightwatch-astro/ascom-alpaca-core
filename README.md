@@ -166,6 +166,25 @@ let description = ServerDescription {
 };
 ```
 
+### Device State
+
+The `DeviceStateBuilder` provides an ergonomic way to construct the `device_state()` response (Platform 7+):
+
+```rust
+use ascom_alpaca_core::prelude::*;
+
+fn device_state(&self) -> AlpacaResult<Vec<DeviceStateItem>> {
+    Ok(DeviceStateBuilder::new()
+        .add("IsSafe", self.is_safe)
+        .add("TimeSinceLastHeartbeat", self.last_heartbeat.elapsed().as_secs())
+        .add("AlarmActive", self.alarm_active)
+        .add("Armed", self.armed)
+        .build())
+}
+```
+
+The `.add()` method accepts any type that implements `Serialize` — no manual `DeviceStateItem` construction or `serde_json::json!()` needed.
+
 ### Transaction Tracking
 
 ```rust

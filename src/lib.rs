@@ -1,5 +1,6 @@
 //! Framework-agnostic ASCOM Alpaca protocol types and traits for Rust.
 //!
+//!
 //! This crate provides the complete ASCOM Alpaca protocol abstraction: typed response
 //! envelopes, error codes, device traits for all 10 ASCOM device types (~220 methods),
 //! domain enums, device registry, and conformance validation.

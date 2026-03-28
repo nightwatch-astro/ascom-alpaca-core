@@ -44,6 +44,7 @@ impl MockDome {
     }
 
     /// Check if azimuth/altitude slews have completed.
+    /// ConformU requires slewing to be true for at least 3 seconds — use 4s for margin.
     fn check_slew_complete(&self) {
         let start = *self.slew_start.lock().unwrap();
         if let Some(started_at) = start {

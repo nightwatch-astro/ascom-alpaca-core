@@ -78,6 +78,7 @@ impl MockTelescope {
     }
 
     /// Check if a slew has completed (>4000ms elapsed) and update position.
+    /// ConformU requires slewing to be true for at least 3 seconds — use 4s for margin.
     fn check_slew_complete(&self) {
         let mut slew = self.slew_start.lock().unwrap();
         if let Some(start) = *slew {

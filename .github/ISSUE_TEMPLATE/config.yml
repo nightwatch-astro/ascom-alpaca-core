@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: ASCOM Alpaca Specification
+    url: https://ascom-standards.org/Developer/Alpaca.htm
+    about: Official ASCOM Alpaca protocol documentation
+  - name: ConformU
+    url: https://github.com/ASCOMInitiative/ConformU
+    about: ASCOM conformance testing tool

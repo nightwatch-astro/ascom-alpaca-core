@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4](https://github.com/nightwatch-astro/ascom-alpaca-core/compare/v0.1.3...v0.1.4) - 2026-03-28
+
+### Performance
+
+- *(ci)* per-device ConformU settings, telescope split, reduced timeouts ([#92](https://github.com/nightwatch-astro/ascom-alpaca-core/pull/92))
+
 ## [0.1.2](https://github.com/nightwatch-astro/ascom-alpaca-core/compare/v0.1.1...v0.1.2) - 2026-03-28
 
 ### Refactoring

@@ -78,11 +78,17 @@ jobs:
           if [ "$EVENT_NAME" = "push" ]; then
             BASE="$EVENT_BEFORE"
           else
+            # Ensure base ref is available for comparison
+            git fetch origin "$BASE_REF" --depth=1 2>/dev/null || true
             BASE="origin/$BASE_REF"
           fi
 
-          # Get changed files (fallback to all if base unavailable)
-          CHANGED=$(git diff --name-only "$BASE" HEAD 2>/dev/null || echo "FULL_RUN")
+          # Get changed files (fallback to full run if diff fails or returns empty)
+          CHANGED=$(git diff --name-only "$BASE" HEAD 2>/dev/null) || CHANGED="FULL_RUN"
+          if [ -z "$CHANGED" ]; then
+            CHANGED="FULL_RUN"
+          fi
+          echo "Changed files: $CHANGED"
 
           # Shared files that affect all devices
           SHARED_PATTERNS="src/types/|src/device/|src/registry/|src/discovery/|src/management/|src/lib.rs|src/conformu/dispatch.rs|src/conformu/management.rs|examples/conformu_harness.rs|Cargo.toml"

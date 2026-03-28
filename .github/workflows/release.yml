@@ -5,13 +5,53 @@ on:
     branches: [main]
 
 jobs:
-  release-plz-pr:
-    name: Release PR
+  # Checks crates.io — only publishes when version is unpublished (i.e., release PR was merged).
+  # Safe to run on every push: no-op when version matches registry.
+  # Order: cargo publish → git tag → GitHub Release. Fails safe at each step.
+  release-plz-release:
+    name: Publish & Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Generate app token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.NIGHTWATCH_APP_ID }}
+          private-key: ${{ secrets.NIGHTWATCH_APP_PRIVATE_KEY }}
+
+      - name: Run release-plz release
+        uses: release-plz/action@v0.5
+        with:
+          command: release
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  # Creates/updates the release PR with version bump + changelog.
+  release-plz-pr:
+    name: Release PR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    concurrency:
+      group: release-plz-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -29,34 +69,6 @@ jobs:
         uses: release-plz/action@v0.5
         with:
           command: release-pr
-        env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-
-  release-plz-release:
-    name: Publish & Release
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: dtolnay/rust-toolchain@stable
-
-      - name: Generate app token
-        id: app-token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ secrets.NIGHTWATCH_APP_ID }}
-          private-key: ${{ secrets.NIGHTWATCH_APP_PRIVATE_KEY }}
-
-      # release-plz release order: cargo publish → git tag → GitHub Release
-      # If cargo publish fails, no tag or release is created.
-      # If tag fails, re-running skips publish (already on crates.io) and retries tag + release.
-      - name: Run release-plz release
-        uses: release-plz/action@v0.5
-        with:
-          command: release
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

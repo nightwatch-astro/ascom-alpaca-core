@@ -1,7 +1,6 @@
 use std::sync::Mutex;
 use std::time::Instant;
 
-use crate::device::Device;
 use crate::dome::{Dome, ShutterState};
 use crate::types::{AlpacaError, AlpacaResult, DeviceType};
 
@@ -63,86 +62,26 @@ impl MockDome {
     }
 }
 
-impl Device for MockDome {
-    fn static_name(&self) -> &str {
-        "Mock Dome"
+impl_mock_device!(MockDome,
+    name: "Mock Dome",
+    unique_id: "mock-dome-001",
+    device_type: DeviceType::Dome,
+    interface_version: 3,
+    device_state: |self_: &MockDome| {
+        use crate::device::common::DeviceStateBuilder;
+        self_.check_slew_complete();
+        let slewing = self_.slew_start.lock().unwrap().is_some()
+            || self_.alt_slew_start.lock().unwrap().is_some();
+        Ok(DeviceStateBuilder::new()
+            .add("Altitude", *self_.altitude.lock().unwrap())
+            .add("AtHome", *self_.at_home.lock().unwrap())
+            .add("AtPark", *self_.at_park.lock().unwrap())
+            .add("Azimuth", *self_.azimuth.lock().unwrap())
+            .add("ShutterStatus", *self_.shutter.lock().unwrap() as i32)
+            .add("Slewing", slewing)
+            .build())
     }
-    fn unique_id(&self) -> &str {
-        "mock-dome-001"
-    }
-    fn device_type(&self) -> DeviceType {
-        DeviceType::Dome
-    }
-    fn connected(&self) -> AlpacaResult<bool> {
-        Ok(*self.connected.lock().unwrap())
-    }
-    fn set_connected(&self, v: bool) -> AlpacaResult<()> {
-        *self.connected.lock().unwrap() = v;
-        Ok(())
-    }
-    fn connecting(&self) -> AlpacaResult<bool> {
-        Ok(false)
-    }
-    fn connect(&self) -> AlpacaResult<()> {
-        *self.connected.lock().unwrap() = true;
-        Ok(())
-    }
-    fn disconnect(&self) -> AlpacaResult<()> {
-        *self.connected.lock().unwrap() = false;
-        Ok(())
-    }
-    fn description(&self) -> AlpacaResult<String> {
-        Ok("Mock Dome with full azimuth/shutter control".into())
-    }
-    fn driver_info(&self) -> AlpacaResult<String> {
-        Ok("ascom-alpaca-core mock".into())
-    }
-    fn driver_version(&self) -> AlpacaResult<String> {
-        Ok(env!("CARGO_PKG_VERSION").into())
-    }
-    fn interface_version(&self) -> AlpacaResult<i32> {
-        Ok(3)
-    }
-    fn name(&self) -> AlpacaResult<String> {
-        Ok("Mock Dome".into())
-    }
-    fn supported_actions(&self) -> AlpacaResult<Vec<String>> {
-        Ok(vec![])
-    }
-    fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> {
-        use crate::device::common::DeviceStateItem;
-        self.check_slew_complete();
-        Ok(vec![
-            DeviceStateItem {
-                name: "Altitude".into(),
-                value: serde_json::json!(*self.altitude.lock().unwrap()),
-            },
-            DeviceStateItem {
-                name: "AtHome".into(),
-                value: serde_json::json!(*self.at_home.lock().unwrap()),
-            },
-            DeviceStateItem {
-                name: "AtPark".into(),
-                value: serde_json::json!(*self.at_park.lock().unwrap()),
-            },
-            DeviceStateItem {
-                name: "Azimuth".into(),
-                value: serde_json::json!(*self.azimuth.lock().unwrap()),
-            },
-            DeviceStateItem {
-                name: "ShutterStatus".into(),
-                value: serde_json::json!(*self.shutter.lock().unwrap() as i32),
-            },
-            DeviceStateItem {
-                name: "Slewing".into(),
-                value: serde_json::json!(
-                    self.slew_start.lock().unwrap().is_some()
-                        || self.alt_slew_start.lock().unwrap().is_some()
-                ),
-            },
-        ])
-    }
-}
+);
 
 impl Dome for MockDome {
     fn altitude(&self) -> AlpacaResult<f64> {

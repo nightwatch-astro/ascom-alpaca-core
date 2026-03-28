@@ -52,7 +52,7 @@ impl Switch for MockSwitch {
 #[test]
 fn safety_monitor_overridden_method() {
     let sm = MockSafetyMonitor;
-    assert_eq!(sm.is_safe().unwrap(), true);
+    assert!(sm.is_safe().unwrap());
 }
 
 #[test]
@@ -133,8 +133,8 @@ fn switch_overridden_and_default_methods() {
     let sw = MockSwitch;
 
     assert_eq!(sw.max_switch().unwrap(), 4);
-    assert_eq!(sw.get_switch(0).unwrap(), true);
-    assert_eq!(sw.get_switch(1).unwrap(), false);
+    assert!(sw.get_switch(0).unwrap());
+    assert!(!sw.get_switch(1).unwrap());
 
     // Unoverridden Switch methods return NotImplemented
     assert!(matches!(

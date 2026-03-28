@@ -2,7 +2,6 @@ use std::sync::Mutex;
 use std::time::Instant;
 
 use crate::camera::{Camera, CameraState, GuideDirection, ImageData, SensorType};
-use crate::device::Device;
 use crate::types::{AlpacaError, AlpacaResult, DeviceType};
 
 /// Gain/offset mode selection — ASCOM cameras use exactly one of these.
@@ -174,95 +173,31 @@ fn epoch_days_to_ymd(days: u64) -> (u64, u64, u64) {
     (y, m, d)
 }
 
-impl Device for MockCamera {
-    fn static_name(&self) -> &str {
-        &self.camera_name
-    }
-    fn unique_id(&self) -> &str {
-        &self.unique_id
-    }
-    fn device_type(&self) -> DeviceType {
-        DeviceType::Camera
-    }
-    fn connected(&self) -> AlpacaResult<bool> {
-        Ok(*self.connected.lock().unwrap())
-    }
-    fn set_connected(&self, v: bool) -> AlpacaResult<()> {
-        *self.connected.lock().unwrap() = v;
-        Ok(())
-    }
-    fn connecting(&self) -> AlpacaResult<bool> {
-        Ok(false)
-    }
-    fn connect(&self) -> AlpacaResult<()> {
-        *self.connected.lock().unwrap() = true;
-        Ok(())
-    }
-    fn disconnect(&self) -> AlpacaResult<()> {
-        *self.connected.lock().unwrap() = false;
-        Ok(())
-    }
-    fn description(&self) -> AlpacaResult<String> {
-        Ok(format!("{} for ConformU testing", self.camera_name))
-    }
-    fn driver_info(&self) -> AlpacaResult<String> {
-        Ok("ascom-alpaca-core mock driver".into())
-    }
-    fn driver_version(&self) -> AlpacaResult<String> {
-        Ok(env!("CARGO_PKG_VERSION").into())
-    }
-    fn interface_version(&self) -> AlpacaResult<i32> {
-        Ok(4)
-    }
-    fn name(&self) -> AlpacaResult<String> {
-        Ok(self.camera_name.clone())
-    }
-    fn supported_actions(&self) -> AlpacaResult<Vec<String>> {
-        Ok(vec![])
-    }
-    fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> {
-        use crate::device::common::DeviceStateItem;
-        self.check_exposure_complete();
-        let state = *self.state.lock().unwrap();
-        let mut items = vec![
-            DeviceStateItem {
-                name: "CameraState".into(),
-                value: serde_json::json!(state as i32),
-            },
-            DeviceStateItem {
-                name: "CCDTemperature".into(),
-                value: serde_json::json!(-10.0),
-            },
-            DeviceStateItem {
-                name: "ImageReady".into(),
-                value: serde_json::json!(*self.image_ready.lock().unwrap()),
-            },
-            DeviceStateItem {
-                name: "HeatSinkTemperature".into(),
-                value: serde_json::json!(25.0),
-            },
-            DeviceStateItem {
-                name: "IsPulseGuiding".into(),
-                value: serde_json::json!(false),
-            },
-            DeviceStateItem {
-                name: "PercentCompleted".into(),
-                value: serde_json::json!(0),
-            },
-        ];
-        if self.features.cooler {
-            items.push(DeviceStateItem {
-                name: "CoolerPower".into(),
-                value: serde_json::json!(if *self.cooler_on.lock().unwrap() {
-                    50.0
-                } else {
-                    0.0
-                }),
-            });
+impl_mock_device!(MockCamera,
+    name_field: camera_name,
+    unique_id_field: unique_id,
+    device_type: DeviceType::Camera,
+    interface_version: 4,
+    device_state: |self_: &MockCamera| {
+        use crate::device::common::DeviceStateBuilder;
+        self_.check_exposure_complete();
+        let state = *self_.state.lock().unwrap();
+        let mut b = DeviceStateBuilder::new()
+            .add("CameraState", state as i32)
+            .add("CCDTemperature", -10.0)
+            .add("ImageReady", *self_.image_ready.lock().unwrap())
+            .add("HeatSinkTemperature", 25.0)
+            .add("IsPulseGuiding", false)
+            .add("PercentCompleted", 0);
+        if self_.features.cooler {
+            b = b.add(
+                "CoolerPower",
+                if *self_.cooler_on.lock().unwrap() { 50.0 } else { 0.0 },
+            );
         }
-        Ok(items)
+        Ok(b.build())
     }
-}
+);
 
 impl Camera for MockCamera {
     // --- Mandatory properties (always available) ---

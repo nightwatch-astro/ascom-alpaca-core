@@ -1,7 +1,6 @@
 use std::sync::Mutex;
 use std::time::Instant;
 
-use crate::device::Device;
 use crate::telescope::{
     AlignmentMode, AxisRates, DriveRate, EquatorialSystem, SideOfPier, Telescope,
 };
@@ -137,109 +136,32 @@ impl MockTelescope {
     }
 }
 
-impl Device for MockTelescope {
-    fn static_name(&self) -> &str {
-        "Mock Telescope"
-    }
-    fn unique_id(&self) -> &str {
-        "mock-tel-001"
-    }
-    fn device_type(&self) -> DeviceType {
-        DeviceType::Telescope
-    }
-    fn connected(&self) -> AlpacaResult<bool> {
-        Ok(*self.connected.lock().unwrap())
-    }
-    fn set_connected(&self, v: bool) -> AlpacaResult<()> {
-        *self.connected.lock().unwrap() = v;
-        Ok(())
-    }
-    fn connecting(&self) -> AlpacaResult<bool> {
-        Ok(false)
-    }
-    fn connect(&self) -> AlpacaResult<()> {
-        *self.connected.lock().unwrap() = true;
-        Ok(())
-    }
-    fn disconnect(&self) -> AlpacaResult<()> {
-        *self.connected.lock().unwrap() = false;
-        Ok(())
-    }
-    fn description(&self) -> AlpacaResult<String> {
-        Ok("Mock Telescope".into())
-    }
-    fn driver_info(&self) -> AlpacaResult<String> {
-        Ok("ascom-alpaca-core mock".into())
-    }
-    fn driver_version(&self) -> AlpacaResult<String> {
-        Ok(env!("CARGO_PKG_VERSION").into())
-    }
-    fn interface_version(&self) -> AlpacaResult<i32> {
-        Ok(4)
-    }
-    fn name(&self) -> AlpacaResult<String> {
-        Ok("Mock Telescope".into())
-    }
-    fn supported_actions(&self) -> AlpacaResult<Vec<String>> {
-        Ok(vec![])
-    }
-    fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> {
-        use crate::device::common::DeviceStateItem;
-        self.check_slew_complete();
+impl_mock_device!(MockTelescope,
+    name: "Mock Telescope",
+    unique_id: "mock-tel-001",
+    device_type: DeviceType::Telescope,
+    interface_version: 4,
+    device_state: |self_: &MockTelescope| {
+        use crate::device::common::DeviceStateBuilder;
+        self_.check_slew_complete();
         let slewing =
-            self.slew_start.lock().unwrap().is_some() || *self.move_axis_active.lock().unwrap();
-        Ok(vec![
-            DeviceStateItem {
-                name: "Altitude".into(),
-                value: serde_json::json!(*self.altitude.lock().unwrap()),
-            },
-            DeviceStateItem {
-                name: "AtHome".into(),
-                value: serde_json::json!(*self.at_home.lock().unwrap()),
-            },
-            DeviceStateItem {
-                name: "AtPark".into(),
-                value: serde_json::json!(*self.at_park.lock().unwrap()),
-            },
-            DeviceStateItem {
-                name: "Azimuth".into(),
-                value: serde_json::json!(*self.azimuth.lock().unwrap()),
-            },
-            DeviceStateItem {
-                name: "Declination".into(),
-                value: serde_json::json!(*self.dec.lock().unwrap()),
-            },
-            DeviceStateItem {
-                name: "IsPulseGuiding".into(),
-                value: serde_json::json!(*self.pulse_guiding.lock().unwrap()),
-            },
-            DeviceStateItem {
-                name: "RightAscension".into(),
-                value: serde_json::json!(*self.ra.lock().unwrap()),
-            },
-            DeviceStateItem {
-                name: "SideOfPier".into(),
-                value: serde_json::json!(0),
-            },
-            DeviceStateItem {
-                name: "SiderealTime".into(),
-                value: serde_json::json!(self.sidereal_time().unwrap_or(0.0)),
-            },
-            DeviceStateItem {
-                name: "Slewing".into(),
-                value: serde_json::json!(slewing),
-            },
-            DeviceStateItem {
-                name: "Tracking".into(),
-                value: serde_json::json!(*self.tracking.lock().unwrap()),
-            },
-            DeviceStateItem {
-                name: "UTCDate".into(),
-                value: serde_json::json!(self.utc_date().unwrap_or_default()),
-            },
-        ])
+            self_.slew_start.lock().unwrap().is_some() || *self_.move_axis_active.lock().unwrap();
+        Ok(DeviceStateBuilder::new()
+            .add("Altitude", *self_.altitude.lock().unwrap())
+            .add("AtHome", *self_.at_home.lock().unwrap())
+            .add("AtPark", *self_.at_park.lock().unwrap())
+            .add("Azimuth", *self_.azimuth.lock().unwrap())
+            .add("Declination", *self_.dec.lock().unwrap())
+            .add("IsPulseGuiding", *self_.pulse_guiding.lock().unwrap())
+            .add("RightAscension", *self_.ra.lock().unwrap())
+            .add("SideOfPier", 0)
+            .add("SiderealTime", self_.sidereal_time().unwrap_or(0.0))
+            .add("Slewing", slewing)
+            .add("Tracking", *self_.tracking.lock().unwrap())
+            .add("UTCDate", self_.utc_date().unwrap_or_default())
+            .build())
     }
-}
+);
 
 impl Telescope for MockTelescope {
     // --- Position & coordinates ---

@@ -21,9 +21,9 @@ fn alpaca_response_ok_i32() {
 
 #[test]
 fn alpaca_response_ok_f64() {
-    let resp = AlpacaResponse::ok(3.14f64);
+    let resp = AlpacaResponse::ok(42.5f64);
     let json = serde_json::to_value(&resp).unwrap();
-    assert!((json["Value"].as_f64().unwrap() - 3.14).abs() < f64::EPSILON);
+    assert!((json["Value"].as_f64().unwrap() - 42.5).abs() < f64::EPSILON);
 }
 
 #[test]

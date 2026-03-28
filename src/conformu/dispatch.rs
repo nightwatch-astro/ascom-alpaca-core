@@ -1,9 +1,30 @@
 use std::collections::HashMap;
 
+use serde::Serialize;
+
 use crate::device::Device;
 use crate::registry::DeviceRegistry;
 use crate::types::params::normalize_params;
 use crate::types::{AlpacaError, AlpacaResponse, DeviceType, MethodResponse};
+
+/// Image array response envelope — avoids double serialization via json!() macro.
+#[derive(Serialize)]
+struct ImageArrayEnvelope {
+    #[serde(rename = "Type")]
+    image_type: i32,
+    #[serde(rename = "Rank")]
+    rank: i32,
+    #[serde(rename = "Value")]
+    value: serde_json::Value,
+    #[serde(rename = "ErrorNumber")]
+    error_number: i32,
+    #[serde(rename = "ErrorMessage")]
+    error_message: &'static str,
+    #[serde(rename = "ClientTransactionID")]
+    client_transaction_id: u32,
+    #[serde(rename = "ServerTransactionID")]
+    server_transaction_id: u32,
+}
 
 /// Parsed Alpaca API request.
 pub struct AlpacaRequest {
@@ -293,14 +314,17 @@ fn respond_void(result: Result<(), AlpacaError>, ctx: u32, stx: u32) -> String {
     }
 }
 
+/// Extracts a parameter as i32. Returns 0 if missing or unparseable.
 fn param_i32(params: &HashMap<String, String>, key: &str) -> i32 {
     params.get(key).and_then(|v| v.parse().ok()).unwrap_or(0)
 }
 
+/// Extracts a parameter as f64. Returns 0.0 if missing or unparseable.
 fn param_f64(params: &HashMap<String, String>, key: &str) -> f64 {
     params.get(key).and_then(|v| v.parse().ok()).unwrap_or(0.0)
 }
 
+/// Extracts a parameter as bool. Accepts "true"/"True", returns false otherwise.
 fn param_bool(params: &HashMap<String, String>, key: &str) -> bool {
     params
         .get(key)
@@ -401,15 +425,15 @@ fn dispatch_camera(
         ("imagearray" | "imagearrayvariant", false) => match dev.image_array() {
             Ok(data) => {
                 let resp = data.to_response();
-                serde_json::to_string(&serde_json::json!({
-                    "Type": resp.image_type,
-                    "Rank": resp.rank,
-                    "Value": resp.value,
-                    "ErrorNumber": 0,
-                    "ErrorMessage": "",
-                    "ClientTransactionID": ctx,
-                    "ServerTransactionID": stx,
-                }))
+                serde_json::to_string(&ImageArrayEnvelope {
+                    image_type: resp.image_type,
+                    rank: resp.rank,
+                    value: resp.value,
+                    error_number: 0,
+                    error_message: "",
+                    client_transaction_id: ctx,
+                    server_transaction_id: stx,
+                })
                 .unwrap()
             }
             Err(e) => respond_val::<serde_json::Value>(Err(e), ctx, stx),

@@ -1,6 +1,5 @@
 use std::sync::Mutex;
 
-use crate::device::Device;
 use crate::observing_conditions::ObservingConditions;
 use crate::types::{AlpacaError, AlpacaResult, DeviceType};
 
@@ -54,110 +53,30 @@ impl MockObservingConditions {
     }
 }
 
-impl Device for MockObservingConditions {
-    fn static_name(&self) -> &str {
-        "Mock ObservingConditions"
+impl_mock_device!(MockObservingConditions,
+    name: "Mock ObservingConditions",
+    unique_id: "mock-oc-001",
+    device_type: DeviceType::ObservingConditions,
+    interface_version: 2,
+    device_state: |_self: &MockObservingConditions| {
+        use crate::device::common::DeviceStateBuilder;
+        Ok(DeviceStateBuilder::new()
+            .add("CloudCover", 20.0)
+            .add("DewPoint", 7.0)
+            .add("Humidity", 60.0)
+            .add("Pressure", 1013.25)
+            .add("RainRate", 0.0)
+            .add("SkyBrightness", 21.5)
+            .add("SkyQuality", 21.5)
+            .add("SkyTemperature", -20.0)
+            .add("StarFWHM", 2.5)
+            .add("Temperature", 15.0)
+            .add("WindDirection", 180.0)
+            .add("WindGust", 8.0)
+            .add("WindSpeed", 5.0)
+            .build())
     }
-    fn unique_id(&self) -> &str {
-        "mock-oc-001"
-    }
-    fn device_type(&self) -> DeviceType {
-        DeviceType::ObservingConditions
-    }
-    fn connected(&self) -> AlpacaResult<bool> {
-        Ok(*self.connected.lock().unwrap())
-    }
-    fn set_connected(&self, v: bool) -> AlpacaResult<()> {
-        *self.connected.lock().unwrap() = v;
-        Ok(())
-    }
-    fn connecting(&self) -> AlpacaResult<bool> {
-        Ok(false)
-    }
-    fn connect(&self) -> AlpacaResult<()> {
-        *self.connected.lock().unwrap() = true;
-        Ok(())
-    }
-    fn disconnect(&self) -> AlpacaResult<()> {
-        *self.connected.lock().unwrap() = false;
-        Ok(())
-    }
-    fn description(&self) -> AlpacaResult<String> {
-        Ok("Mock ObservingConditions with all 13 weather sensors".into())
-    }
-    fn driver_info(&self) -> AlpacaResult<String> {
-        Ok("ascom-alpaca-core mock".into())
-    }
-    fn driver_version(&self) -> AlpacaResult<String> {
-        Ok(env!("CARGO_PKG_VERSION").into())
-    }
-    fn interface_version(&self) -> AlpacaResult<i32> {
-        Ok(2)
-    }
-    fn name(&self) -> AlpacaResult<String> {
-        Ok("Mock ObservingConditions".into())
-    }
-    fn supported_actions(&self) -> AlpacaResult<Vec<String>> {
-        Ok(vec![])
-    }
-    fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> {
-        use crate::device::common::DeviceStateItem;
-        Ok(vec![
-            DeviceStateItem {
-                name: "CloudCover".into(),
-                value: serde_json::json!(20.0),
-            },
-            DeviceStateItem {
-                name: "DewPoint".into(),
-                value: serde_json::json!(7.0),
-            },
-            DeviceStateItem {
-                name: "Humidity".into(),
-                value: serde_json::json!(60.0),
-            },
-            DeviceStateItem {
-                name: "Pressure".into(),
-                value: serde_json::json!(1013.25),
-            },
-            DeviceStateItem {
-                name: "RainRate".into(),
-                value: serde_json::json!(0.0),
-            },
-            DeviceStateItem {
-                name: "SkyBrightness".into(),
-                value: serde_json::json!(21.5),
-            },
-            DeviceStateItem {
-                name: "SkyQuality".into(),
-                value: serde_json::json!(21.5),
-            },
-            DeviceStateItem {
-                name: "SkyTemperature".into(),
-                value: serde_json::json!(-20.0),
-            },
-            DeviceStateItem {
-                name: "StarFWHM".into(),
-                value: serde_json::json!(2.5),
-            },
-            DeviceStateItem {
-                name: "Temperature".into(),
-                value: serde_json::json!(15.0),
-            },
-            DeviceStateItem {
-                name: "WindDirection".into(),
-                value: serde_json::json!(180.0),
-            },
-            DeviceStateItem {
-                name: "WindGust".into(),
-                value: serde_json::json!(8.0),
-            },
-            DeviceStateItem {
-                name: "WindSpeed".into(),
-                value: serde_json::json!(5.0),
-            },
-        ])
-    }
-}
+);
 
 impl ObservingConditions for MockObservingConditions {
     // All 13 weather properties with realistic mock values

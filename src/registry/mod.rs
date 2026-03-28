@@ -78,193 +78,99 @@ impl DeviceRegistry {
                 device_number,
             })
     }
+}
 
-    // --- Typed lookup methods (feature-gated) ---
-
-    #[cfg(feature = "safety_monitor")]
-    pub fn get_safety_monitor(
-        &self,
-        num: u32,
-    ) -> Result<&dyn crate::safety_monitor::SafetyMonitor, RegistryError> {
-        let idx = self
-            .device_number_for(DeviceType::SafetyMonitor, num)
-            .ok_or(RegistryError::DeviceNotFound {
-                device_type: DeviceType::SafetyMonitor,
-                device_number: num,
-            })?;
-        match &self.devices[idx] {
-            RegisteredDevice::SafetyMonitor(d) => Ok(d.as_ref()),
-            _ => Err(RegistryError::DeviceNotFound {
-                device_type: DeviceType::SafetyMonitor,
-                device_number: num,
-            }),
-        }
-    }
-
-    #[cfg(feature = "switch")]
-    pub fn get_switch(&self, num: u32) -> Result<&dyn crate::switch::Switch, RegistryError> {
-        let idx = self.device_number_for(DeviceType::Switch, num).ok_or(
-            RegistryError::DeviceNotFound {
-                device_type: DeviceType::Switch,
-                device_number: num,
-            },
-        )?;
-        match &self.devices[idx] {
-            RegisteredDevice::Switch(d) => Ok(d.as_ref()),
-            _ => Err(RegistryError::DeviceNotFound {
-                device_type: DeviceType::Switch,
-                device_number: num,
-            }),
-        }
-    }
-
-    #[cfg(feature = "camera")]
-    pub fn get_camera(&self, num: u32) -> Result<&dyn crate::camera::Camera, RegistryError> {
-        let idx = self.device_number_for(DeviceType::Camera, num).ok_or(
-            RegistryError::DeviceNotFound {
-                device_type: DeviceType::Camera,
-                device_number: num,
-            },
-        )?;
-        match &self.devices[idx] {
-            RegisteredDevice::Camera(d) => Ok(d.as_ref()),
-            _ => Err(RegistryError::DeviceNotFound {
-                device_type: DeviceType::Camera,
-                device_number: num,
-            }),
-        }
-    }
-
-    #[cfg(feature = "cover_calibrator")]
-    pub fn get_cover_calibrator(
-        &self,
-        num: u32,
-    ) -> Result<&dyn crate::cover_calibrator::CoverCalibrator, RegistryError> {
-        let idx = self
-            .device_number_for(DeviceType::CoverCalibrator, num)
-            .ok_or(RegistryError::DeviceNotFound {
-                device_type: DeviceType::CoverCalibrator,
-                device_number: num,
-            })?;
-        match &self.devices[idx] {
-            RegisteredDevice::CoverCalibrator(d) => Ok(d.as_ref()),
-            _ => Err(RegistryError::DeviceNotFound {
-                device_type: DeviceType::CoverCalibrator,
-                device_number: num,
-            }),
-        }
-    }
-
-    #[cfg(feature = "dome")]
-    pub fn get_dome(&self, num: u32) -> Result<&dyn crate::dome::Dome, RegistryError> {
-        let idx =
-            self.device_number_for(DeviceType::Dome, num)
-                .ok_or(RegistryError::DeviceNotFound {
-                    device_type: DeviceType::Dome,
+/// Generates a typed getter method on `DeviceRegistry` that looks up a device by type
+/// and number, then downcasts from `RegisteredDevice` to a specific device trait.
+///
+/// Each invocation produces: `pub fn $fn_name(&self, num: u32) -> Result<&dyn Trait, RegistryError>`
+macro_rules! typed_getter {
+    ($fn_name:ident, $feature:literal, $device_type:expr, $variant:ident, $trait_path:path) => {
+        #[cfg(feature = $feature)]
+        pub fn $fn_name(&self, num: u32) -> Result<&dyn $trait_path, RegistryError> {
+            let idx =
+                self.device_number_for($device_type, num)
+                    .ok_or(RegistryError::DeviceNotFound {
+                        device_type: $device_type,
+                        device_number: num,
+                    })?;
+            match &self.devices[idx] {
+                RegisteredDevice::$variant(d) => Ok(d.as_ref()),
+                _ => Err(RegistryError::DeviceNotFound {
+                    device_type: $device_type,
                     device_number: num,
-                })?;
-        match &self.devices[idx] {
-            RegisteredDevice::Dome(d) => Ok(d.as_ref()),
-            _ => Err(RegistryError::DeviceNotFound {
-                device_type: DeviceType::Dome,
-                device_number: num,
-            }),
+                }),
+            }
         }
-    }
+    };
+}
 
-    #[cfg(feature = "filter_wheel")]
-    pub fn get_filter_wheel(
-        &self,
-        num: u32,
-    ) -> Result<&dyn crate::filter_wheel::FilterWheel, RegistryError> {
-        let idx = self.device_number_for(DeviceType::FilterWheel, num).ok_or(
-            RegistryError::DeviceNotFound {
-                device_type: DeviceType::FilterWheel,
-                device_number: num,
-            },
-        )?;
-        match &self.devices[idx] {
-            RegisteredDevice::FilterWheel(d) => Ok(d.as_ref()),
-            _ => Err(RegistryError::DeviceNotFound {
-                device_type: DeviceType::FilterWheel,
-                device_number: num,
-            }),
-        }
-    }
-
-    #[cfg(feature = "focuser")]
-    pub fn get_focuser(&self, num: u32) -> Result<&dyn crate::focuser::Focuser, RegistryError> {
-        let idx = self.device_number_for(DeviceType::Focuser, num).ok_or(
-            RegistryError::DeviceNotFound {
-                device_type: DeviceType::Focuser,
-                device_number: num,
-            },
-        )?;
-        match &self.devices[idx] {
-            RegisteredDevice::Focuser(d) => Ok(d.as_ref()),
-            _ => Err(RegistryError::DeviceNotFound {
-                device_type: DeviceType::Focuser,
-                device_number: num,
-            }),
-        }
-    }
-
-    #[cfg(feature = "observing_conditions")]
-    pub fn get_observing_conditions(
-        &self,
-        num: u32,
-    ) -> Result<&dyn crate::observing_conditions::ObservingConditions, RegistryError> {
-        let idx = self
-            .device_number_for(DeviceType::ObservingConditions, num)
-            .ok_or(RegistryError::DeviceNotFound {
-                device_type: DeviceType::ObservingConditions,
-                device_number: num,
-            })?;
-        match &self.devices[idx] {
-            RegisteredDevice::ObservingConditions(d) => Ok(d.as_ref()),
-            _ => Err(RegistryError::DeviceNotFound {
-                device_type: DeviceType::ObservingConditions,
-                device_number: num,
-            }),
-        }
-    }
-
-    #[cfg(feature = "rotator")]
-    pub fn get_rotator(&self, num: u32) -> Result<&dyn crate::rotator::Rotator, RegistryError> {
-        let idx = self.device_number_for(DeviceType::Rotator, num).ok_or(
-            RegistryError::DeviceNotFound {
-                device_type: DeviceType::Rotator,
-                device_number: num,
-            },
-        )?;
-        match &self.devices[idx] {
-            RegisteredDevice::Rotator(d) => Ok(d.as_ref()),
-            _ => Err(RegistryError::DeviceNotFound {
-                device_type: DeviceType::Rotator,
-                device_number: num,
-            }),
-        }
-    }
-
-    #[cfg(feature = "telescope")]
-    pub fn get_telescope(
-        &self,
-        num: u32,
-    ) -> Result<&dyn crate::telescope::Telescope, RegistryError> {
-        let idx = self.device_number_for(DeviceType::Telescope, num).ok_or(
-            RegistryError::DeviceNotFound {
-                device_type: DeviceType::Telescope,
-                device_number: num,
-            },
-        )?;
-        match &self.devices[idx] {
-            RegisteredDevice::Telescope(d) => Ok(d.as_ref()),
-            _ => Err(RegistryError::DeviceNotFound {
-                device_type: DeviceType::Telescope,
-                device_number: num,
-            }),
-        }
-    }
+// --- Typed lookup methods (feature-gated) ---
+impl DeviceRegistry {
+    typed_getter!(
+        get_safety_monitor,
+        "safety_monitor",
+        DeviceType::SafetyMonitor,
+        SafetyMonitor,
+        crate::safety_monitor::SafetyMonitor
+    );
+    typed_getter!(
+        get_switch,
+        "switch",
+        DeviceType::Switch,
+        Switch,
+        crate::switch::Switch
+    );
+    typed_getter!(
+        get_camera,
+        "camera",
+        DeviceType::Camera,
+        Camera,
+        crate::camera::Camera
+    );
+    typed_getter!(
+        get_cover_calibrator,
+        "cover_calibrator",
+        DeviceType::CoverCalibrator,
+        CoverCalibrator,
+        crate::cover_calibrator::CoverCalibrator
+    );
+    typed_getter!(get_dome, "dome", DeviceType::Dome, Dome, crate::dome::Dome);
+    typed_getter!(
+        get_filter_wheel,
+        "filter_wheel",
+        DeviceType::FilterWheel,
+        FilterWheel,
+        crate::filter_wheel::FilterWheel
+    );
+    typed_getter!(
+        get_focuser,
+        "focuser",
+        DeviceType::Focuser,
+        Focuser,
+        crate::focuser::Focuser
+    );
+    typed_getter!(
+        get_observing_conditions,
+        "observing_conditions",
+        DeviceType::ObservingConditions,
+        ObservingConditions,
+        crate::observing_conditions::ObservingConditions
+    );
+    typed_getter!(
+        get_rotator,
+        "rotator",
+        DeviceType::Rotator,
+        Rotator,
+        crate::rotator::Rotator
+    );
+    typed_getter!(
+        get_telescope,
+        "telescope",
+        DeviceType::Telescope,
+        Telescope,
+        crate::telescope::Telescope
+    );
 }
 
 impl Default for DeviceRegistry {

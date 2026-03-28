@@ -1,10 +1,10 @@
 #![cfg(feature = "all-devices")]
 
-use ascom_alpaca_core::device::{Device, RegisteredDevice};
+use ascom_alpaca_core::device::Device;
 use ascom_alpaca_core::registry::{ClientTracker, DeviceRegistry, TransactionCounter};
 use ascom_alpaca_core::safety_monitor::SafetyMonitor;
 use ascom_alpaca_core::switch::Switch;
-use ascom_alpaca_core::types::{AlpacaError, DeviceType};
+use ascom_alpaca_core::types::DeviceType;
 
 struct TestSafetyMonitor {
     name: &'static str,
@@ -63,7 +63,7 @@ fn register_and_lookup() {
     registry.register(sw);
 
     let found_sm = registry.get_safety_monitor(0).unwrap();
-    assert_eq!(found_sm.is_safe().unwrap(), true);
+    assert!(found_sm.is_safe().unwrap());
 
     let found_sw = registry.get_switch(0).unwrap();
     assert_eq!(found_sw.max_switch().unwrap(), 2);
@@ -96,7 +96,7 @@ fn device_numbers_per_type() {
 
     // SM1 is device 0, SM2 is device 1
     let found = registry.get_safety_monitor(1).unwrap();
-    assert_eq!(found.is_safe().unwrap(), true);
+    assert!(found.is_safe().unwrap());
 
     // Switch is device 0
     let found_sw = registry.get_switch(0).unwrap();

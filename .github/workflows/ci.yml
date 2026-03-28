@@ -2,8 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [main]
   pull_request:
+
+# Cancel duplicate runs: when a PR exists, the push event is redundant.
+# Use head_ref (branch name) for PRs, ref for pushes — same branch collapses to one run.
+concurrency:
+  group: ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
@@ -51,6 +56,7 @@ jobs:
 
   # Determine which ConformU device tests to run based on changed files
   conformu-filter:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     outputs:
       devices: ${{ steps.filter.outputs.devices }}

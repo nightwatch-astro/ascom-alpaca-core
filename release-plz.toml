@@ -9,6 +9,13 @@ publish_timeout = "30m"
 # Version from conventional commits
 semver_check = false  # no cargo-semver-checks dependency needed
 
+# Bump version in README.md before release commit
+pre_release_hook = { command = "sed", args = [
+    "-i",
+    "s/ascom-alpaca-core = \"[0-9][^\"]*\"/ascom-alpaca-core = \"{{ version }}\"/g",
+    "README.md"
+] }
+
 [[package]]
 name = "ascom-alpaca-core"
 

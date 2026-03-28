@@ -11,11 +11,8 @@ Provides the complete protocol abstraction for all 10 ASCOM device types (~220 m
 
 ## Quick Start
 
-Add to your `Cargo.toml`:
-
-```toml
-[dependencies]
-ascom-alpaca-core = "0.1"
+```bash
+cargo add ascom-alpaca-core
 ```
 
 Implement a device:
@@ -281,7 +278,7 @@ All device types are enabled by default. Disable defaults to reduce binary size 
 
 ```toml
 [dependencies]
-ascom-alpaca-core = { version = "0.1", default-features = false, features = ["safety_monitor", "switch"] }
+ascom-alpaca-core = { default-features = false, features = ["safety_monitor", "switch"] }
 ```
 
 | Feature | Device Type | Methods |
@@ -391,7 +388,7 @@ The crate has no `std` networking dependency. For ESP32:
 
 ```toml
 [dependencies]
-ascom-alpaca-core = { version = "0.1", default-features = false, features = ["safety_monitor"] }
+ascom-alpaca-core = { default-features = false, features = ["safety_monitor"] }
 ```
 
 Use with `esp_http_server` (C bindings) or any ESP-IDF HTTP server. The response types serialize to JSON via serde, which you send as the HTTP response body.

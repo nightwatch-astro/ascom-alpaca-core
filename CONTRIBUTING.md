@@ -82,11 +82,11 @@ src/
 1. Create `src/{device_type}/mod.rs` with the trait (extending `Device`)
 2. Add domain types in `src/{device_type}/types.rs` if needed
 3. Add a feature flag in `Cargo.toml` and wire it into `all-devices`
-4. Add the variant to `RegisteredDevice` in `src/device/mod.rs`
-5. Add typed lookup to `DeviceRegistry` in `src/registry/mod.rs`
+4. Add the variant to `RegisteredDevice` in `src/device/mod.rs` (+ `From` impl)
+5. Add a `typed_getter!` invocation in `src/registry/mod.rs`
 6. Re-export in `src/prelude` (feature-gated)
 7. Add dispatch in `src/conformu/dispatch.rs` (feature-gated)
-8. Add a mock in `src/conformu/mocks/` with ConformU-passing implementation
+8. Add a mock in `src/conformu/mocks/` using `impl_mock_device!` macro + `DeviceStateBuilder`
 9. Register the mock in `examples/conformu_harness.rs`
 
 ## Adding Methods to an Existing Device
@@ -117,6 +117,8 @@ Scopes: `camera`, `telescope`, `dome`, `switch`, `focuser`, `rotator`, `conformu
 - Trait methods return `AlpacaResult<T>` (never panic)
 - Use `AlpacaError` variants, not custom error types
 - Mocks use `Mutex` for interior mutability (single-threaded harness, but trait requires `&self`)
+- Mocks use `impl_mock_device!` macro for `Device` trait boilerplate (see `conformu/mocks/mod.rs`)
+- Use `DeviceStateBuilder` for `device_state()` implementations (both in mocks and consumer code)
 
 ## License
 

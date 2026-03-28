@@ -4,53 +4,56 @@ on:
   push:
     branches: [main]
 
-permissions:
-  contents: write
-  pull-requests: write
-
 jobs:
-  release-please:
-    name: Release Please
-    runs-on: ubuntu-latest
-    outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
-      version: ${{ steps.release.outputs.version }}
-    steps:
-      - uses: googleapis/release-please-action@v4
-        id: release
-        with:
-          config-file: release-please-config.json
-          manifest-file: .release-please-manifest.json
-
-  publish:
-    name: Publish to crates.io
-    needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
+  release-plz-pr:
+    name: Release PR
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - uses: dtolnay/rust-toolchain@stable
 
-      # release-please bumps Cargo.toml version via rust release type
-      - name: Verify version matches tag
+      - name: Generate app token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.NIGHTWATCH_APP_ID }}
+          private-key: ${{ secrets.NIGHTWATCH_APP_PRIVATE_KEY }}
+
+      - name: Run release-plz release-pr
+        uses: release-plz/action@v0.5
+        with:
+          command: release-pr
         env:
-          TAG_VERSION: ${{ needs.release-please.outputs.version }}
-        run: |
-          CARGO_VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/')
-          if [ "$CARGO_VERSION" != "$TAG_VERSION" ]; then
-            echo "::error::Cargo.toml version ($CARGO_VERSION) doesn't match tag ($TAG_VERSION)"
-            exit 1
-          fi
-          echo "Version verified: $CARGO_VERSION"
-
-      - name: Run tests
-        run: cargo test --all-features
-
-      - name: Dry-run publish
-        run: cargo publish --dry-run
-
-      - name: Publish
-        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish
+
+  release-plz-release:
+    name: Publish & Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Generate app token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.NIGHTWATCH_APP_ID }}
+          private-key: ${{ secrets.NIGHTWATCH_APP_PRIVATE_KEY }}
+
+      # release-plz release order: cargo publish → git tag → GitHub Release
+      # If cargo publish fails, no tag or release is created.
+      # If tag fails, re-running skips publish (already on crates.io) and retries tag + release.
+      - name: Run release-plz release
+        uses: release-plz/action@v0.5
+        with:
+          command: release
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

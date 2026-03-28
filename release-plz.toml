@@ -1,0 +1,32 @@
+[workspace]
+# Safe ordering: cargo publish → git tag → GitHub Release
+publish = true
+git_tag_enable = true
+git_release_enable = true
+git_release_draft = false
+publish_timeout = "30m"
+
+# Version from conventional commits
+semver_check = false  # no cargo-semver-checks dependency needed
+
+# Bump version in README.md before release commit
+pre_release_hook = { command = "sed", args = [
+    "-i",
+    "s/ascom-alpaca-core = \"[0-9][^\"]*\"/ascom-alpaca-core = \"{{ version }}\"/g",
+    "README.md"
+] }
+
+[[package]]
+name = "ascom-alpaca-core"
+
+[changelog]
+# Conventional commits → changelog sections
+commit_parsers = [
+    { message = "^feat", group = "Features" },
+    { message = "^fix", group = "Bug Fixes" },
+    { message = "^perf", group = "Performance" },
+    { message = "^refactor", group = "Refactoring" },
+    { message = "^docs", group = "Documentation" },
+    { message = "^test", group = "Testing" },
+    { message = "^chore", group = "Miscellaneous" },
+]

@@ -19,6 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - run: cargo test --all-features
       - run: cargo test --no-default-features
       - name: Verify publishable
@@ -31,6 +32,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
       - run: cargo clippy --all-features -- -D warnings
       - run: cargo fmt --check
 
@@ -39,12 +41,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - run: cargo check --all-features
       - run: cargo check --no-default-features
       - run: cargo check --no-default-features --features safety_monitor
       - run: cargo check --no-default-features --features camera
       - run: cargo check --no-default-features --features telescope
       - run: cargo check --no-default-features --features dome
+
+  semver-check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: obi1kenobi/cargo-semver-checks-action@v2
 
   validate-specs:
     runs-on: ubuntu-latest

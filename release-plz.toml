@@ -6,8 +6,8 @@ git_release_enable = true
 git_release_draft = false
 publish_timeout = "30m"
 
-# Semver
-semver_check = true
+# Semver check runs as separate CI job (faster with pre-built binary)
+semver_check = false
 features_always_increment_minor = true
 
 # Keep deps fresh in release PRs

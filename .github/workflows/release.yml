@@ -54,9 +54,7 @@ jobs:
           persist-credentials: false
 
       - uses: dtolnay/rust-toolchain@stable
-
-      - name: Install cargo-semver-checks
-        run: cargo install cargo-semver-checks --locked
+      - uses: Swatinem/rust-cache@v2
 
       - name: Generate app token
         id: app-token

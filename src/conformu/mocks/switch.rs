@@ -1,6 +1,5 @@
 use std::sync::Mutex;
 
-use crate::device::Device;
 use crate::switch::Switch;
 use crate::types::{AlpacaError, AlpacaResult, DeviceType};
 
@@ -89,75 +88,26 @@ impl MockSwitch {
     }
 }
 
-impl Device for MockSwitch {
-    fn static_name(&self) -> &str {
-        "Mock Switch"
-    }
-    fn unique_id(&self) -> &str {
-        "mock-sw-001"
-    }
-    fn device_type(&self) -> DeviceType {
-        DeviceType::Switch
-    }
-    fn connected(&self) -> AlpacaResult<bool> {
-        Ok(*self.connected.lock().unwrap())
-    }
-    fn set_connected(&self, v: bool) -> AlpacaResult<()> {
-        *self.connected.lock().unwrap() = v;
-        Ok(())
-    }
-    fn connecting(&self) -> AlpacaResult<bool> {
-        Ok(false)
-    }
-    fn connect(&self) -> AlpacaResult<()> {
-        *self.connected.lock().unwrap() = true;
-        Ok(())
-    }
-    fn disconnect(&self) -> AlpacaResult<()> {
-        *self.connected.lock().unwrap() = false;
-        Ok(())
-    }
-    fn description(&self) -> AlpacaResult<String> {
-        Ok("Mock Switch with boolean, multi-state, and analog channels".into())
-    }
-    fn driver_info(&self) -> AlpacaResult<String> {
-        Ok("ascom-alpaca-core mock".into())
-    }
-    fn driver_version(&self) -> AlpacaResult<String> {
-        Ok(env!("CARGO_PKG_VERSION").into())
-    }
-    fn interface_version(&self) -> AlpacaResult<i32> {
-        Ok(3)
-    }
-    fn name(&self) -> AlpacaResult<String> {
-        Ok("Mock Switch".into())
-    }
-    fn supported_actions(&self) -> AlpacaResult<Vec<String>> {
-        Ok(vec![])
-    }
-    fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> {
-        use crate::device::common::DeviceStateItem;
-        let values = self.values.lock().unwrap();
-        let mut items = Vec::new();
+impl_mock_device!(MockSwitch,
+    name: "Mock Switch",
+    unique_id: "mock-sw-001",
+    device_type: DeviceType::Switch,
+    interface_version: 3,
+    device_state: |self_: &MockSwitch| {
+        use crate::device::common::DeviceStateBuilder;
+        let values = self_.values.lock().unwrap();
+        let mut b = DeviceStateBuilder::new();
         for (i, ch) in CHANNELS.iter().enumerate() {
             let val = values[i];
             let bool_val = val >= (ch.min + ch.max) / 2.0;
-            items.push(DeviceStateItem {
-                name: format!("GetSwitch{i}"),
-                value: serde_json::json!(bool_val),
-            });
-            items.push(DeviceStateItem {
-                name: format!("GetSwitchValue{i}"),
-                value: serde_json::json!(val),
-            });
-            items.push(DeviceStateItem {
-                name: format!("StateChangeComplete{i}"),
-                value: serde_json::json!(true),
-            });
+            b = b
+                .add(&format!("GetSwitch{i}"), bool_val)
+                .add(&format!("GetSwitchValue{i}"), val)
+                .add(&format!("StateChangeComplete{i}"), true);
         }
-        Ok(items)
+        Ok(b.build())
     }
-}
+);
 
 impl Switch for MockSwitch {
     fn max_switch(&self) -> AlpacaResult<i32> {

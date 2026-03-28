@@ -1,7 +1,6 @@
 use std::sync::Mutex;
 use std::time::Instant;
 
-use crate::device::Device;
 use crate::filter_wheel::FilterWheel;
 use crate::types::{AlpacaError, AlpacaResult, DeviceType};
 
@@ -29,61 +28,17 @@ impl MockFilterWheel {
     }
 }
 
-impl Device for MockFilterWheel {
-    fn static_name(&self) -> &str {
-        "Mock FilterWheel"
+impl_mock_device!(MockFilterWheel,
+    name: "Mock FilterWheel",
+    unique_id: "mock-fw-001",
+    device_type: DeviceType::FilterWheel,
+    interface_version: 3,
+    device_state: |self_: &MockFilterWheel| {
+        use crate::device::common::DeviceStateBuilder;
+        let pos = self_.position().unwrap_or(-1);
+        Ok(DeviceStateBuilder::new().add("Position", pos).build())
     }
-    fn unique_id(&self) -> &str {
-        "mock-fw-001"
-    }
-    fn device_type(&self) -> DeviceType {
-        DeviceType::FilterWheel
-    }
-    fn connected(&self) -> AlpacaResult<bool> {
-        Ok(*self.connected.lock().unwrap())
-    }
-    fn set_connected(&self, v: bool) -> AlpacaResult<()> {
-        *self.connected.lock().unwrap() = v;
-        Ok(())
-    }
-    fn connecting(&self) -> AlpacaResult<bool> {
-        Ok(false)
-    }
-    fn connect(&self) -> AlpacaResult<()> {
-        *self.connected.lock().unwrap() = true;
-        Ok(())
-    }
-    fn disconnect(&self) -> AlpacaResult<()> {
-        *self.connected.lock().unwrap() = false;
-        Ok(())
-    }
-    fn description(&self) -> AlpacaResult<String> {
-        Ok("Mock FilterWheel".into())
-    }
-    fn driver_info(&self) -> AlpacaResult<String> {
-        Ok("ascom-alpaca-core mock".into())
-    }
-    fn driver_version(&self) -> AlpacaResult<String> {
-        Ok(env!("CARGO_PKG_VERSION").into())
-    }
-    fn interface_version(&self) -> AlpacaResult<i32> {
-        Ok(3)
-    }
-    fn name(&self) -> AlpacaResult<String> {
-        Ok("Mock FilterWheel".into())
-    }
-    fn supported_actions(&self) -> AlpacaResult<Vec<String>> {
-        Ok(vec![])
-    }
-    fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> {
-        use crate::device::common::DeviceStateItem;
-        let pos = self.position().unwrap_or(-1);
-        Ok(vec![DeviceStateItem {
-            name: "Position".into(),
-            value: serde_json::json!(pos),
-        }])
-    }
-}
+);
 
 impl FilterWheel for MockFilterWheel {
     fn position(&self) -> AlpacaResult<i32> {

@@ -38,6 +38,7 @@ pub mod telescope;
 
 /// Re-exports of the most commonly used types.
 pub mod prelude {
+    pub use crate::device::common::DeviceStateBuilder;
     pub use crate::device::{Device, RegisteredDevice};
     pub use crate::discovery::{
         DiscoveryResponse, DEFAULT_DISCOVERY_PORT, DISCOVERY_PROBE, IPV6_MULTICAST,

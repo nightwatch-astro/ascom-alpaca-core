@@ -1,7 +1,6 @@
 use std::sync::Mutex;
 
 use crate::cover_calibrator::{CalibratorState, CoverCalibrator, CoverState};
-use crate::device::Device;
 use crate::types::{AlpacaError, AlpacaResult, DeviceType};
 
 pub struct MockCoverCalibrator {
@@ -28,78 +27,22 @@ impl MockCoverCalibrator {
     }
 }
 
-impl Device for MockCoverCalibrator {
-    fn static_name(&self) -> &str {
-        "Mock CoverCalibrator"
+impl_mock_device!(MockCoverCalibrator,
+    name: "Mock CoverCalibrator",
+    unique_id: "mock-cc-001",
+    device_type: DeviceType::CoverCalibrator,
+    interface_version: 2,
+    device_state: |self_: &MockCoverCalibrator| {
+        use crate::device::common::DeviceStateBuilder;
+        Ok(DeviceStateBuilder::new()
+            .add("Brightness", *self_.brightness.lock().unwrap())
+            .add("CalibratorState", *self_.calibrator_state.lock().unwrap())
+            .add("CoverState", *self_.cover_state.lock().unwrap())
+            .add("CalibratorChanging", false)
+            .add("CoverMoving", false)
+            .build())
     }
-    fn unique_id(&self) -> &str {
-        "mock-cc-001"
-    }
-    fn device_type(&self) -> DeviceType {
-        DeviceType::CoverCalibrator
-    }
-    fn connected(&self) -> AlpacaResult<bool> {
-        Ok(*self.connected.lock().unwrap())
-    }
-    fn set_connected(&self, v: bool) -> AlpacaResult<()> {
-        *self.connected.lock().unwrap() = v;
-        Ok(())
-    }
-    fn connecting(&self) -> AlpacaResult<bool> {
-        Ok(false)
-    }
-    fn connect(&self) -> AlpacaResult<()> {
-        *self.connected.lock().unwrap() = true;
-        Ok(())
-    }
-    fn disconnect(&self) -> AlpacaResult<()> {
-        *self.connected.lock().unwrap() = false;
-        Ok(())
-    }
-    fn description(&self) -> AlpacaResult<String> {
-        Ok("Mock CoverCalibrator".into())
-    }
-    fn driver_info(&self) -> AlpacaResult<String> {
-        Ok("ascom-alpaca-core mock".into())
-    }
-    fn driver_version(&self) -> AlpacaResult<String> {
-        Ok(env!("CARGO_PKG_VERSION").into())
-    }
-    fn interface_version(&self) -> AlpacaResult<i32> {
-        Ok(2)
-    }
-    fn name(&self) -> AlpacaResult<String> {
-        Ok("Mock CoverCalibrator".into())
-    }
-    fn supported_actions(&self) -> AlpacaResult<Vec<String>> {
-        Ok(vec![])
-    }
-    fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> {
-        use crate::device::common::DeviceStateItem;
-        Ok(vec![
-            DeviceStateItem {
-                name: "Brightness".into(),
-                value: serde_json::json!(*self.brightness.lock().unwrap()),
-            },
-            DeviceStateItem {
-                name: "CalibratorState".into(),
-                value: serde_json::json!(*self.calibrator_state.lock().unwrap()),
-            },
-            DeviceStateItem {
-                name: "CoverState".into(),
-                value: serde_json::json!(*self.cover_state.lock().unwrap()),
-            },
-            DeviceStateItem {
-                name: "CalibratorChanging".into(),
-                value: serde_json::json!(false),
-            },
-            DeviceStateItem {
-                name: "CoverMoving".into(),
-                value: serde_json::json!(false),
-            },
-        ])
-    }
-}
+);
 
 impl CoverCalibrator for MockCoverCalibrator {
     fn brightness(&self) -> AlpacaResult<i32> {

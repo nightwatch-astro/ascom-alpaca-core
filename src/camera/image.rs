@@ -182,25 +182,43 @@ pub mod imagebytes {
         buf
     }
 
+    fn read_i32(bytes: &[u8], offset: usize) -> Result<i32, String> {
+        bytes
+            .get(offset..offset + 4)
+            .and_then(|s| s.try_into().ok())
+            .map(i32::from_le_bytes)
+            .ok_or_else(|| format!("ImageBytes: truncated at offset {offset}"))
+    }
+
+    fn read_u32(bytes: &[u8], offset: usize) -> Result<u32, String> {
+        bytes
+            .get(offset..offset + 4)
+            .and_then(|s| s.try_into().ok())
+            .map(u32::from_le_bytes)
+            .ok_or_else(|| format!("ImageBytes: truncated at offset {offset}"))
+    }
+
     /// Decodes ImageBytes binary format back into ImageData.
     pub fn decode(bytes: &[u8]) -> Result<super::ImageData, String> {
         if bytes.len() < 44 {
             return Err("ImageBytes header too short".into());
         }
 
-        let _metadata_version = i32::from_le_bytes(bytes[0..4].try_into().unwrap());
-        let _error_number = i32::from_le_bytes(bytes[4..8].try_into().unwrap());
-        let _client_tx = u32::from_le_bytes(bytes[8..12].try_into().unwrap());
-        let _server_tx = u32::from_le_bytes(bytes[12..16].try_into().unwrap());
-        let data_start = i32::from_le_bytes(bytes[16..20].try_into().unwrap()) as usize;
-        let image_type = i32::from_le_bytes(bytes[20..24].try_into().unwrap());
-        let _transmission_type = i32::from_le_bytes(bytes[24..28].try_into().unwrap());
-        let rank = i32::from_le_bytes(bytes[28..32].try_into().unwrap());
-        let dim1 = i32::from_le_bytes(bytes[32..36].try_into().unwrap()) as usize;
-        let dim2 = i32::from_le_bytes(bytes[36..40].try_into().unwrap()) as usize;
-        let dim3 = i32::from_le_bytes(bytes[40..44].try_into().unwrap()) as usize;
+        let _metadata_version = read_i32(bytes, 0)?;
+        let _error_number = read_i32(bytes, 4)?;
+        let _client_tx = read_u32(bytes, 8)?;
+        let _server_tx = read_u32(bytes, 12)?;
+        let data_start = read_i32(bytes, 16)? as usize;
+        let image_type = read_i32(bytes, 20)?;
+        let _transmission_type = read_i32(bytes, 24)?;
+        let rank = read_i32(bytes, 28)?;
+        let dim1 = read_i32(bytes, 32)? as usize;
+        let dim2 = read_i32(bytes, 36)? as usize;
+        let dim3 = read_i32(bytes, 40)? as usize;
 
-        let pixel_data = &bytes[data_start..];
+        let pixel_data = bytes
+            .get(data_start..)
+            .ok_or_else(|| format!("ImageBytes: data_start {data_start} beyond buffer"))?;
 
         match (image_type, rank) {
             (1, 2) => {
@@ -209,7 +227,9 @@ pub mod imagebytes {
                     for (j, pixel) in row.iter_mut().enumerate() {
                         let offset = (i * dim2 + j) * 2;
                         *pixel =
-                            i16::from_le_bytes(pixel_data[offset..offset + 2].try_into().unwrap());
+                            i16::from_le_bytes(pixel_data.get(offset..offset + 2)
+                                .and_then(|s| s.try_into().ok())
+                                .ok_or_else(|| format!("ImageBytes: pixel data truncated at offset {offset}"))?);
                     }
                 }
                 Ok(super::ImageData::I16_2D(data))
@@ -220,7 +240,9 @@ pub mod imagebytes {
                     for (j, pixel) in row.iter_mut().enumerate() {
                         let offset = (i * dim2 + j) * 4;
                         *pixel =
-                            i32::from_le_bytes(pixel_data[offset..offset + 4].try_into().unwrap());
+                            i32::from_le_bytes(pixel_data.get(offset..offset + 4)
+                                .and_then(|s| s.try_into().ok())
+                                .ok_or_else(|| format!("ImageBytes: pixel data truncated at offset {offset}"))?);
                     }
                 }
                 Ok(super::ImageData::I32_2D(data))
@@ -231,7 +253,9 @@ pub mod imagebytes {
                     for (j, pixel) in row.iter_mut().enumerate() {
                         let offset = (i * dim2 + j) * 8;
                         *pixel =
-                            f64::from_le_bytes(pixel_data[offset..offset + 8].try_into().unwrap());
+                            f64::from_le_bytes(pixel_data.get(offset..offset + 8)
+                                .and_then(|s| s.try_into().ok())
+                                .ok_or_else(|| format!("ImageBytes: pixel data truncated at offset {offset}"))?);
                     }
                 }
                 Ok(super::ImageData::F64_2D(data))
@@ -243,7 +267,9 @@ pub mod imagebytes {
                         for (k, pixel) in row.iter_mut().enumerate() {
                             let offset = (i * dim2 * dim3 + j * dim3 + k) * 2;
                             *pixel = i16::from_le_bytes(
-                                pixel_data[offset..offset + 2].try_into().unwrap(),
+                                pixel_data.get(offset..offset + 2)
+                                .and_then(|s| s.try_into().ok())
+                                .ok_or_else(|| format!("ImageBytes: pixel data truncated at offset {offset}"))?,
                             );
                         }
                     }
@@ -257,7 +283,9 @@ pub mod imagebytes {
                         for (k, pixel) in row.iter_mut().enumerate() {
                             let offset = (i * dim2 * dim3 + j * dim3 + k) * 4;
                             *pixel = i32::from_le_bytes(
-                                pixel_data[offset..offset + 4].try_into().unwrap(),
+                                pixel_data.get(offset..offset + 4)
+                                .and_then(|s| s.try_into().ok())
+                                .ok_or_else(|| format!("ImageBytes: pixel data truncated at offset {offset}"))?,
                             );
                         }
                     }
@@ -271,7 +299,9 @@ pub mod imagebytes {
                         for (k, pixel) in row.iter_mut().enumerate() {
                             let offset = (i * dim2 * dim3 + j * dim3 + k) * 8;
                             *pixel = f64::from_le_bytes(
-                                pixel_data[offset..offset + 8].try_into().unwrap(),
+                                pixel_data.get(offset..offset + 8)
+                                .and_then(|s| s.try_into().ok())
+                                .ok_or_else(|| format!("ImageBytes: pixel data truncated at offset {offset}"))?,
                             );
                         }
                     }

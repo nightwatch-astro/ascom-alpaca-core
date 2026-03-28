@@ -78,7 +78,6 @@ impl DeviceRegistry {
                 device_number,
             })
     }
-
 }
 
 /// Generates a typed getter method on `DeviceRegistry` that looks up a device by type
@@ -89,12 +88,12 @@ macro_rules! typed_getter {
     ($fn_name:ident, $feature:literal, $device_type:expr, $variant:ident, $trait_path:path) => {
         #[cfg(feature = $feature)]
         pub fn $fn_name(&self, num: u32) -> Result<&dyn $trait_path, RegistryError> {
-            let idx = self
-                .device_number_for($device_type, num)
-                .ok_or(RegistryError::DeviceNotFound {
-                    device_type: $device_type,
-                    device_number: num,
-                })?;
+            let idx =
+                self.device_number_for($device_type, num)
+                    .ok_or(RegistryError::DeviceNotFound {
+                        device_type: $device_type,
+                        device_number: num,
+                    })?;
             match &self.devices[idx] {
                 RegisteredDevice::$variant(d) => Ok(d.as_ref()),
                 _ => Err(RegistryError::DeviceNotFound {
@@ -108,16 +107,70 @@ macro_rules! typed_getter {
 
 // --- Typed lookup methods (feature-gated) ---
 impl DeviceRegistry {
-    typed_getter!(get_safety_monitor, "safety_monitor", DeviceType::SafetyMonitor, SafetyMonitor, crate::safety_monitor::SafetyMonitor);
-    typed_getter!(get_switch, "switch", DeviceType::Switch, Switch, crate::switch::Switch);
-    typed_getter!(get_camera, "camera", DeviceType::Camera, Camera, crate::camera::Camera);
-    typed_getter!(get_cover_calibrator, "cover_calibrator", DeviceType::CoverCalibrator, CoverCalibrator, crate::cover_calibrator::CoverCalibrator);
+    typed_getter!(
+        get_safety_monitor,
+        "safety_monitor",
+        DeviceType::SafetyMonitor,
+        SafetyMonitor,
+        crate::safety_monitor::SafetyMonitor
+    );
+    typed_getter!(
+        get_switch,
+        "switch",
+        DeviceType::Switch,
+        Switch,
+        crate::switch::Switch
+    );
+    typed_getter!(
+        get_camera,
+        "camera",
+        DeviceType::Camera,
+        Camera,
+        crate::camera::Camera
+    );
+    typed_getter!(
+        get_cover_calibrator,
+        "cover_calibrator",
+        DeviceType::CoverCalibrator,
+        CoverCalibrator,
+        crate::cover_calibrator::CoverCalibrator
+    );
     typed_getter!(get_dome, "dome", DeviceType::Dome, Dome, crate::dome::Dome);
-    typed_getter!(get_filter_wheel, "filter_wheel", DeviceType::FilterWheel, FilterWheel, crate::filter_wheel::FilterWheel);
-    typed_getter!(get_focuser, "focuser", DeviceType::Focuser, Focuser, crate::focuser::Focuser);
-    typed_getter!(get_observing_conditions, "observing_conditions", DeviceType::ObservingConditions, ObservingConditions, crate::observing_conditions::ObservingConditions);
-    typed_getter!(get_rotator, "rotator", DeviceType::Rotator, Rotator, crate::rotator::Rotator);
-    typed_getter!(get_telescope, "telescope", DeviceType::Telescope, Telescope, crate::telescope::Telescope);
+    typed_getter!(
+        get_filter_wheel,
+        "filter_wheel",
+        DeviceType::FilterWheel,
+        FilterWheel,
+        crate::filter_wheel::FilterWheel
+    );
+    typed_getter!(
+        get_focuser,
+        "focuser",
+        DeviceType::Focuser,
+        Focuser,
+        crate::focuser::Focuser
+    );
+    typed_getter!(
+        get_observing_conditions,
+        "observing_conditions",
+        DeviceType::ObservingConditions,
+        ObservingConditions,
+        crate::observing_conditions::ObservingConditions
+    );
+    typed_getter!(
+        get_rotator,
+        "rotator",
+        DeviceType::Rotator,
+        Rotator,
+        crate::rotator::Rotator
+    );
+    typed_getter!(
+        get_telescope,
+        "telescope",
+        DeviceType::Telescope,
+        Telescope,
+        crate::telescope::Telescope
+    );
 }
 
 impl Default for DeviceRegistry {

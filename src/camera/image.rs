@@ -226,10 +226,14 @@ pub mod imagebytes {
                 for (i, row) in data.iter_mut().enumerate() {
                     for (j, pixel) in row.iter_mut().enumerate() {
                         let offset = (i * dim2 + j) * 2;
-                        *pixel =
-                            i16::from_le_bytes(pixel_data.get(offset..offset + 2)
+                        *pixel = i16::from_le_bytes(
+                            pixel_data
+                                .get(offset..offset + 2)
                                 .and_then(|s| s.try_into().ok())
-                                .ok_or_else(|| format!("ImageBytes: pixel data truncated at offset {offset}"))?);
+                                .ok_or_else(|| {
+                                    format!("ImageBytes: pixel data truncated at offset {offset}")
+                                })?,
+                        );
                     }
                 }
                 Ok(super::ImageData::I16_2D(data))
@@ -239,10 +243,14 @@ pub mod imagebytes {
                 for (i, row) in data.iter_mut().enumerate() {
                     for (j, pixel) in row.iter_mut().enumerate() {
                         let offset = (i * dim2 + j) * 4;
-                        *pixel =
-                            i32::from_le_bytes(pixel_data.get(offset..offset + 4)
+                        *pixel = i32::from_le_bytes(
+                            pixel_data
+                                .get(offset..offset + 4)
                                 .and_then(|s| s.try_into().ok())
-                                .ok_or_else(|| format!("ImageBytes: pixel data truncated at offset {offset}"))?);
+                                .ok_or_else(|| {
+                                    format!("ImageBytes: pixel data truncated at offset {offset}")
+                                })?,
+                        );
                     }
                 }
                 Ok(super::ImageData::I32_2D(data))
@@ -252,10 +260,14 @@ pub mod imagebytes {
                 for (i, row) in data.iter_mut().enumerate() {
                     for (j, pixel) in row.iter_mut().enumerate() {
                         let offset = (i * dim2 + j) * 8;
-                        *pixel =
-                            f64::from_le_bytes(pixel_data.get(offset..offset + 8)
+                        *pixel = f64::from_le_bytes(
+                            pixel_data
+                                .get(offset..offset + 8)
                                 .and_then(|s| s.try_into().ok())
-                                .ok_or_else(|| format!("ImageBytes: pixel data truncated at offset {offset}"))?);
+                                .ok_or_else(|| {
+                                    format!("ImageBytes: pixel data truncated at offset {offset}")
+                                })?,
+                        );
                     }
                 }
                 Ok(super::ImageData::F64_2D(data))
@@ -267,9 +279,14 @@ pub mod imagebytes {
                         for (k, pixel) in row.iter_mut().enumerate() {
                             let offset = (i * dim2 * dim3 + j * dim3 + k) * 2;
                             *pixel = i16::from_le_bytes(
-                                pixel_data.get(offset..offset + 2)
-                                .and_then(|s| s.try_into().ok())
-                                .ok_or_else(|| format!("ImageBytes: pixel data truncated at offset {offset}"))?,
+                                pixel_data
+                                    .get(offset..offset + 2)
+                                    .and_then(|s| s.try_into().ok())
+                                    .ok_or_else(|| {
+                                        format!(
+                                            "ImageBytes: pixel data truncated at offset {offset}"
+                                        )
+                                    })?,
                             );
                         }
                     }
@@ -283,9 +300,14 @@ pub mod imagebytes {
                         for (k, pixel) in row.iter_mut().enumerate() {
                             let offset = (i * dim2 * dim3 + j * dim3 + k) * 4;
                             *pixel = i32::from_le_bytes(
-                                pixel_data.get(offset..offset + 4)
-                                .and_then(|s| s.try_into().ok())
-                                .ok_or_else(|| format!("ImageBytes: pixel data truncated at offset {offset}"))?,
+                                pixel_data
+                                    .get(offset..offset + 4)
+                                    .and_then(|s| s.try_into().ok())
+                                    .ok_or_else(|| {
+                                        format!(
+                                            "ImageBytes: pixel data truncated at offset {offset}"
+                                        )
+                                    })?,
                             );
                         }
                     }
@@ -299,9 +321,14 @@ pub mod imagebytes {
                         for (k, pixel) in row.iter_mut().enumerate() {
                             let offset = (i * dim2 * dim3 + j * dim3 + k) * 8;
                             *pixel = f64::from_le_bytes(
-                                pixel_data.get(offset..offset + 8)
-                                .and_then(|s| s.try_into().ok())
-                                .ok_or_else(|| format!("ImageBytes: pixel data truncated at offset {offset}"))?,
+                                pixel_data
+                                    .get(offset..offset + 8)
+                                    .and_then(|s| s.try_into().ok())
+                                    .ok_or_else(|| {
+                                        format!(
+                                            "ImageBytes: pixel data truncated at offset {offset}"
+                                        )
+                                    })?,
                             );
                         }
                     }

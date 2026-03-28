@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1](https://github.com/nightwatch-astro/ascom-alpaca-core/compare/v0.1.0...v0.1.1) - 2026-03-28
+
+### Bug Fixes
+
+- *(ci)* conformu-filter fetch base ref before diff ([#76](https://github.com/nightwatch-astro/ascom-alpaca-core/pull/76))
+
 ## [0.1.0](https://github.com/nightwatch-astro/ascom-alpaca-core/releases/tag/v0.1.0) - 2026-03-28
 
 ### Bug Fixes

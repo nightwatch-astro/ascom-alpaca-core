@@ -81,7 +81,7 @@ impl MockTelescope {
     fn check_slew_complete(&self) {
         let mut slew = self.slew_start.lock().unwrap();
         if let Some(start) = *slew {
-            if start.elapsed().as_millis() >= 4000 {
+            if start.elapsed().as_millis() >= 1000 {
                 // Slew complete — update current position from targets
                 if let Some(tra) = *self.target_ra.lock().unwrap() {
                     *self.ra.lock().unwrap() = tra;

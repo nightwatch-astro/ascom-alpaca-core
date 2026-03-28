@@ -111,67 +111,83 @@ jobs:
           # Shared files that affect all devices
           SHARED_PATTERNS="src/types/|src/device/|src/registry/|src/discovery/|src/management/|src/lib.rs|src/conformu/dispatch.rs|src/conformu/management.rs"
 
-          ALL_DEVICES='["safetymonitor/0","camera/0","camera/1","switch/0","covercalibrator/0","dome/0","filterwheel/0","focuser/0","observingconditions/0","rotator/0","telescope/0"]'
+          # Each matrix entry: {"device": "type/num", "settings": "file", "name": "label"}
+          # Telescope is split into core (slews, tracking) and pier (SideOfPier + 7-min meridian wait)
+          ALL_ENTRIES='[
+            {"device":"safetymonitor/0","settings":"base","name":"safetymonitor-0"},
+            {"device":"camera/0","settings":"base","name":"camera-0"},
+            {"device":"camera/1","settings":"base","name":"camera-1"},
+            {"device":"switch/0","settings":"base","name":"switch-0"},
+            {"device":"covercalibrator/0","settings":"base","name":"covercalibrator-0"},
+            {"device":"dome/0","settings":"base","name":"dome-0"},
+            {"device":"filterwheel/0","settings":"base","name":"filterwheel-0"},
+            {"device":"focuser/0","settings":"base","name":"focuser-0"},
+            {"device":"observingconditions/0","settings":"base","name":"observingconditions-0"},
+            {"device":"rotator/0","settings":"base","name":"rotator-0"},
+            {"device":"telescope/0","settings":"telescope-core","name":"telescope-core"},
+            {"device":"telescope/0","settings":"telescope-pier","name":"telescope-pier"}
+          ]'
 
           if echo "$CHANGED" | grep -qE "$SHARED_PATTERNS" || echo "$CHANGED" | grep -q "FULL_RUN"; then
-            echo "devices=$ALL_DEVICES" >> "$GITHUB_OUTPUT"
+            echo "devices=$ALL_ENTRIES" >> "$GITHUB_OUTPUT"
             echo "any_changed=true" >> "$GITHUB_OUTPUT"
             echo "Shared files changed — testing all devices"
             exit 0
           fi
 
-          # Map file paths to device endpoints
-          DEVICES="["
-          SEP=""
+          # Map file paths to device entries
+          ENTRIES=""
           SEEN=""
 
-          check_add() {
-            local pattern="$1" dev="$2"
+          add_entry() {
+            local pattern="$1" device="$2" settings="$3" name="$4"
             if echo "$CHANGED" | grep -q "$pattern"; then
-              if ! echo "$SEEN" | grep -q "$dev"; then
-                DEVICES="${DEVICES}${SEP}\"${dev}\""
-                SEP=","
-                SEEN="${SEEN} ${dev}"
+              if ! echo "$SEEN" | grep -q "$name"; then
+                [ -n "$ENTRIES" ] && ENTRIES="${ENTRIES},"
+                ENTRIES="${ENTRIES}{\"device\":\"${device}\",\"settings\":\"${settings}\",\"name\":\"${name}\"}"
+                SEEN="${SEEN} ${name}"
               fi
             fi
           }
 
-          check_add "src/safety_monitor/" "safetymonitor/0"
-          check_add "src/conformu/mocks/safety_monitor" "safetymonitor/0"
-          check_add "src/camera/" "camera/0"
-          check_add "src/conformu/mocks/camera" "camera/0"
-          check_add "src/switch/" "switch/0"
-          check_add "src/conformu/mocks/switch" "switch/0"
-          check_add "src/cover_calibrator/" "covercalibrator/0"
-          check_add "src/conformu/mocks/cover_calibrator" "covercalibrator/0"
-          check_add "src/dome/" "dome/0"
-          check_add "src/conformu/mocks/dome" "dome/0"
-          check_add "src/filter_wheel/" "filterwheel/0"
-          check_add "src/conformu/mocks/filter_wheel" "filterwheel/0"
-          check_add "src/focuser/" "focuser/0"
-          check_add "src/conformu/mocks/focuser" "focuser/0"
-          check_add "src/observing_conditions/" "observingconditions/0"
-          check_add "src/conformu/mocks/observing_conditions" "observingconditions/0"
-          check_add "src/rotator/" "rotator/0"
-          check_add "src/conformu/mocks/rotator" "rotator/0"
-          check_add "src/telescope/" "telescope/0"
-          check_add "src/conformu/mocks/telescope" "telescope/0"
+          add_entry "src/safety_monitor/" "safetymonitor/0" "base" "safetymonitor-0"
+          add_entry "src/conformu/mocks/safety_monitor" "safetymonitor/0" "base" "safetymonitor-0"
+          add_entry "src/camera/" "camera/0" "base" "camera-0"
+          add_entry "src/conformu/mocks/camera" "camera/0" "base" "camera-0"
+          add_entry "src/switch/" "switch/0" "base" "switch-0"
+          add_entry "src/conformu/mocks/switch" "switch/0" "base" "switch-0"
+          add_entry "src/cover_calibrator/" "covercalibrator/0" "base" "covercalibrator-0"
+          add_entry "src/conformu/mocks/cover_calibrator" "covercalibrator/0" "base" "covercalibrator-0"
+          add_entry "src/dome/" "dome/0" "base" "dome-0"
+          add_entry "src/conformu/mocks/dome" "dome/0" "base" "dome-0"
+          add_entry "src/filter_wheel/" "filterwheel/0" "base" "filterwheel-0"
+          add_entry "src/conformu/mocks/filter_wheel" "filterwheel/0" "base" "filterwheel-0"
+          add_entry "src/focuser/" "focuser/0" "base" "focuser-0"
+          add_entry "src/conformu/mocks/focuser" "focuser/0" "base" "focuser-0"
+          add_entry "src/observing_conditions/" "observingconditions/0" "base" "observingconditions-0"
+          add_entry "src/conformu/mocks/observing_conditions" "observingconditions/0" "base" "observingconditions-0"
+          add_entry "src/rotator/" "rotator/0" "base" "rotator-0"
+          add_entry "src/conformu/mocks/rotator" "rotator/0" "base" "rotator-0"
+          # Telescope changes trigger both core and pier jobs
+          add_entry "src/telescope/" "telescope/0" "telescope-core" "telescope-core"
+          add_entry "src/conformu/mocks/telescope" "telescope/0" "telescope-core" "telescope-core"
+          add_entry "src/telescope/" "telescope/0" "telescope-pier" "telescope-pier"
+          add_entry "src/conformu/mocks/telescope" "telescope/0" "telescope-pier" "telescope-pier"
 
           # Camera changes also need color camera test
-          if echo "$SEEN" | grep -q "camera/0"; then
-            DEVICES="${DEVICES},\"camera/1\""
+          if echo "$SEEN" | grep -q "camera-0"; then
+            [ -n "$ENTRIES" ] && ENTRIES="${ENTRIES},"
+            ENTRIES="${ENTRIES}{\"device\":\"camera/1\",\"settings\":\"base\",\"name\":\"camera-1\"}"
           fi
 
-          DEVICES="${DEVICES}]"
-
-          if [ "$DEVICES" = "[]" ]; then
+          if [ -z "$ENTRIES" ]; then
             echo "any_changed=false" >> "$GITHUB_OUTPUT"
             echo "devices=[]" >> "$GITHUB_OUTPUT"
             echo "No device files changed — skipping ConformU"
           else
             echo "any_changed=true" >> "$GITHUB_OUTPUT"
-            echo "devices=$DEVICES" >> "$GITHUB_OUTPUT"
-            echo "Devices to test: $DEVICES"
+            echo "devices=[${ENTRIES}]" >> "$GITHUB_OUTPUT"
+            echo "Devices to test: [${ENTRIES}]"
           fi
 
   conformu:
@@ -182,7 +198,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        device: ${{ fromJson(needs.conformu-filter.outputs.devices) }}
+        include: ${{ fromJson(needs.conformu-filter.outputs.devices) }}
     env:
       CONFORMU_VERSION: "4.2.1"
     steps:
@@ -213,39 +229,73 @@ jobs:
           sleep 3
           curl -sf http://127.0.0.1:32888/management/apiversions || (echo "Harness failed to start" && exit 1)
 
-      - name: Run ConformU
+      - name: Prepare settings
         env:
           DEVICE: ${{ matrix.device }}
+          SETTINGS: ${{ matrix.settings }}
         run: |
-          SLUG=$(echo "$DEVICE" | tr '/' '-')
-          conformu conformance "http://127.0.0.1:32888/api/v1/$DEVICE" \
-            --resultsfile "conformu-${SLUG}.json" \
-            --logfilename "conformu-${SLUG}.log" \
+          DEVICE_TYPE=$(echo "$DEVICE" | cut -d/ -f1)
+          DEVICE_NUM=$(echo "$DEVICE" | cut -d/ -f2)
+          SETTINGS_FILE=".github/conformu-settings/${SETTINGS}.json"
+
+          # Inject AlpacaDevice and DeviceTechnology into settings for conformance-settings command
+          python3 - "$SETTINGS_FILE" "$DEVICE_TYPE" "$DEVICE_NUM" <<'PYEOF'
+          import json, sys
+          settings_file, device_type, device_num = sys.argv[1], sys.argv[2], int(sys.argv[3])
+          type_map = {
+            "safetymonitor": "SafetyMonitor", "camera": "Camera", "switch": "Switch",
+            "covercalibrator": "CoverCalibrator", "dome": "Dome", "filterwheel": "FilterWheel",
+            "focuser": "Focuser", "observingconditions": "ObservingConditions",
+            "rotator": "Rotator", "telescope": "Telescope"
+          }
+          with open(settings_file) as f:
+              settings = json.load(f)
+          settings["AlpacaDevice"] = {
+            "AscomDeviceType": type_map[device_type],
+            "AlpacaDeviceNumber": device_num,
+            "ServiceType": "Http",
+            "IpAddress": "127.0.0.1",
+            "IpPort": 32888,
+            "InterfaceVersion": 1
+          }
+          settings["DeviceTechnology"] = "Alpaca"
+          settings["DeviceType"] = type_map[device_type]
+          with open("conformu-active-settings.json", "w") as f:
+              json.dump(settings, f, indent=2)
+          PYEOF
+
+      - name: Run ConformU
+        env:
+          NAME: ${{ matrix.name }}
+        run: |
+          conformu conformance-settings \
+            --settingsfile conformu-active-settings.json \
+            --resultsfile "conformu-${NAME}.json" \
+            --logfilename "conformu-${NAME}.log" \
             || true
 
       - name: Check results
         env:
-          DEVICE: ${{ matrix.device }}
+          NAME: ${{ matrix.name }}
         run: |
-          SLUG=$(echo "$DEVICE" | tr '/' '-')
           python3 - <<PYEOF
           import json, sys, os
-          slug = os.environ["DEVICE"].replace("/", "-")
-          f = f"conformu-{slug}.json"
+          name = os.environ["NAME"]
+          f = f"conformu-{name}.json"
           try:
               data = json.load(open(f))
               errors = data.get("ErrorCount", 0)
               issues = data.get("IssueCount", 0)
-              print(f"ConformU {slug}: {errors} errors, {issues} issues")
+              print(f"ConformU {name}: {errors} errors, {issues} issues")
               if errors > 0:
                   for e in data.get("Errors", []):
                       print(f"  ERROR: {e['Key']}: {e['Value']}")
-                  print(f"::error::ConformU found {errors} conformance errors for {slug}")
+                  print(f"::error::ConformU found {errors} conformance errors for {name}")
                   sys.exit(1)
               if issues > 0:
                   for i in data.get("Issues", []):
                       print(f"  ISSUE: {i['Key']}: {i['Value']}")
-                  print(f"::error::ConformU found {issues} issues for {slug}")
+                  print(f"::error::ConformU found {issues} issues for {name}")
                   sys.exit(1)
           except Exception as e:
               print(f"::error::Failed to parse results: {e}")
@@ -256,7 +306,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: conformu-${{ strategy.job-index }}
+          name: conformu-${{ matrix.name }}
           path: |
             conformu-*.json
             conformu-*.log

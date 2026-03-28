@@ -414,18 +414,66 @@ Use with `esp_http_server` (C bindings) or any ESP-IDF HTTP server. The response
 
 ## ConformU Validation
 
-The `conformu` feature provides a complete test harness for validating your protocol implementation against the [ASCOM ConformU](https://github.com/ASCOMInitiative/ConformU) conformance checker:
+This crate is validated against [ASCOM ConformU](https://github.com/ASCOMInitiative/ConformU) (v4.2.1), the official ASCOM conformance checker by Peter Simpson. ConformU tests are run in CI on every pull request — all 11 mock devices pass with 0 errors, 0 issues.
+
+### Running ConformU Locally
 
 ```bash
+# 1. Start the test harness
 cargo run --example conformu_harness --features conformu
-# Then run ConformU against http://127.0.0.1:32888
+
+# 2. Test a single device
+conformu conformance "http://127.0.0.1:32888/api/v1/safetymonitor/0" \
+  --resultsfile results.json --logfilename conformu.log
+
+# 3. Test all devices
+for dev in safetymonitor/0 camera/0 camera/1 switch/0 covercalibrator/0 \
+           dome/0 filterwheel/0 focuser/0 observingconditions/0 rotator/0 telescope/0; do
+  echo "--- $dev ---"
+  conformu conformance "http://127.0.0.1:32888/api/v1/$dev" \
+    --resultsfile "/tmp/$(echo $dev | tr '/' '-').json"
+done
 ```
+
+### Custom Settings
+
+ConformU supports a JSON settings file for fine-tuning tests (timeouts, extended tests, strictness). Pass it via `--settingsfile`:
+
+```bash
+conformu conformance "http://127.0.0.1:32888/api/v1/telescope/0" \
+  --settingsfile my-settings.json
+```
+
+Key settings you might want to adjust for your device:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `TestSideOfPierRead/Write` | `false` | Enable extended SideOfPier tests (GEM mounts) |
+| `DomeOpenShutter` | `false` | Test shutter open/close (requires real or mock shutter) |
+| `SwitchEnableSet` | `false` | Allow switch set operations |
+| `CameraExposureDuration` | `2.0` | Exposure time in seconds |
+| `ProtocolStrictChecks` | `false` | Stricter HTTP status and JSON validation |
+| `TelescopeExtendedMoveAxisTests` | `true` | Extended MoveAxis validation |
+
+See [`.github/conformu-settings.json`](.github/conformu-settings.json) for the full CI configuration with optimized timeouts for mock devices.
+
+### CI Integration
+
+ConformU runs as a matrix job in CI — one job per device type, in parallel. The CI uses a [settings file](.github/conformu-settings.json) with:
+- Strict protocol checks enabled
+- Reduced timeouts (mocks respond instantly, no need for hardware delays)
+- All optional tests enabled (SideOfPier, shutter, switch set)
+- Performance testing enabled
+
+Results are uploaded as artifacts (JSON + log) for each device.
+
+### The Harness
 
 The harness includes:
 - Mock implementations for all 10 device types with configurable capabilities
 - Complete URL-to-trait dispatch layer (`dispatch_request`)
 - Management API handlers
-- All 11 mock devices pass ConformU with 0 errors, 0 issues
+- Preemptive meridian flip (6 min before meridian, like real GEM mounts with dead zones)
 
 ### Using the Dispatch Layer
 

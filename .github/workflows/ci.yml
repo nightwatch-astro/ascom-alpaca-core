@@ -109,7 +109,7 @@ jobs:
           echo "Changed files: $CHANGED"
 
           # Shared files that affect all devices
-          SHARED_PATTERNS="src/types/|src/device/|src/registry/|src/discovery/|src/management/|src/lib.rs|src/conformu/dispatch.rs|src/conformu/management.rs|examples/conformu_harness.rs|Cargo.toml"
+          SHARED_PATTERNS="src/types/|src/device/|src/registry/|src/discovery/|src/management/|src/lib.rs|src/conformu/dispatch.rs|src/conformu/management.rs"
 
           ALL_DEVICES='["safetymonitor/0","camera/0","camera/1","switch/0","covercalibrator/0","dome/0","filterwheel/0","focuser/0","observingconditions/0","rotator/0","telescope/0"]'
 

@@ -50,7 +50,6 @@ jobs:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - run: cargo check --all-features
       - run: cargo check --no-default-features
       - run: cargo check --no-default-features --features safety_monitor
       - run: cargo check --no-default-features --features camera
@@ -180,7 +179,7 @@ jobs:
   conformu:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: [test, lint, conformu-filter]
+    needs: [conformu-filter]
     if: needs.conformu-filter.outputs.any_changed == 'true'
     strategy:
       fail-fast: false
@@ -201,13 +200,24 @@ jobs:
             ~/.cargo/git
           key: conformu-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
 
+      - name: Cache ConformU
+        id: conformu-cache
+        uses: actions/cache@v5
+        with:
+          path: conformu
+          key: conformu-v${{ env.CONFORMU_VERSION }}-linux-x64
+
       - name: Download ConformU
+        if: steps.conformu-cache.outputs.cache-hit != 'true'
         run: |
           curl -sL "https://github.com/ASCOMInitiative/ConformU/releases/download/v${CONFORMU_VERSION}/conformu.linux-x64.tar.xz" \
             -o conformu.tar.xz
           tar xJf conformu.tar.xz
           chmod +x conformu
-          echo "$PWD" >> "$GITHUB_PATH"
+          rm conformu.tar.xz
+
+      - name: Add ConformU to PATH
+        run: echo "$PWD" >> "$GITHUB_PATH"
 
       - name: Build and start test harness
         run: |

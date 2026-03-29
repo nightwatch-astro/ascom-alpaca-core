@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1](https://github.com/nightwatch-astro/ascom-alpaca-core/compare/v0.2.0...v0.2.1) - 2026-03-29
+
+### Ci
+
+- skip semver-check when no Rust code changes ([#101](https://github.com/nightwatch-astro/ascom-alpaca-core/pull/101))
+- add dependabot config and patch auto-merge ([#99](https://github.com/nightwatch-astro/ascom-alpaca-core/pull/99))
+
 ## [0.2.0](https://github.com/nightwatch-astro/ascom-alpaca-core/compare/v0.1.4...v0.2.0) - 2026-03-29
 
 ### Features

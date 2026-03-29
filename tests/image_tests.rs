@@ -137,7 +137,7 @@ fn imagebytes_large_image() {
         assert_eq!(result.len(), rows);
         assert_eq!(result[0].len(), cols);
         assert_eq!(result[0][0], 0);
-        assert_eq!(result[767][1023], 767 * 1024 + 1023);
+        assert_eq!(result[767][1023], (767 * 1024 + 1023) as i32);
     } else {
         panic!("Expected I32_2D");
     }

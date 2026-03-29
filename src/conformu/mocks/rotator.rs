@@ -1,6 +1,7 @@
 use std::sync::Mutex;
 use std::time::Instant;
 
+use crate::device::Device;
 use crate::rotator::Rotator;
 use crate::types::{AlpacaError, AlpacaResult, DeviceType};
 
@@ -45,21 +46,71 @@ impl MockRotator {
     }
 }
 
-impl_mock_device!(MockRotator,
-    name: "Mock Rotator",
-    unique_id: "mock-rot-001",
-    device_type: DeviceType::Rotator,
-    interface_version: 4,
-    device_state: |self_: &MockRotator| {
-        use crate::device::common::DeviceStateBuilder;
-        self_.check_move_complete();
-        Ok(DeviceStateBuilder::new()
-            .add("IsMoving", self_.move_start.lock().unwrap().is_some())
-            .add("MechanicalPosition", *self_.mechanical_position.lock().unwrap())
-            .add("Position", *self_.position.lock().unwrap())
-            .build())
+impl Device for MockRotator {
+    fn static_name(&self) -> &str {
+        "Mock Rotator"
     }
-);
+    fn unique_id(&self) -> &str {
+        "mock-rot-001"
+    }
+    fn device_type(&self) -> DeviceType {
+        DeviceType::Rotator
+    }
+    fn connected(&self) -> AlpacaResult<bool> {
+        Ok(*self.connected.lock().unwrap())
+    }
+    fn set_connected(&self, v: bool) -> AlpacaResult<()> {
+        *self.connected.lock().unwrap() = v;
+        Ok(())
+    }
+    fn connecting(&self) -> AlpacaResult<bool> {
+        Ok(false)
+    }
+    fn connect(&self) -> AlpacaResult<()> {
+        *self.connected.lock().unwrap() = true;
+        Ok(())
+    }
+    fn disconnect(&self) -> AlpacaResult<()> {
+        *self.connected.lock().unwrap() = false;
+        Ok(())
+    }
+    fn description(&self) -> AlpacaResult<String> {
+        Ok("Mock Rotator".into())
+    }
+    fn driver_info(&self) -> AlpacaResult<String> {
+        Ok("ascom-alpaca-core mock".into())
+    }
+    fn driver_version(&self) -> AlpacaResult<String> {
+        Ok(env!("CARGO_PKG_VERSION").into())
+    }
+    fn interface_version(&self) -> AlpacaResult<i32> {
+        Ok(4)
+    }
+    fn name(&self) -> AlpacaResult<String> {
+        Ok("Mock Rotator".into())
+    }
+    fn supported_actions(&self) -> AlpacaResult<Vec<String>> {
+        Ok(vec![])
+    }
+    fn device_state(&self) -> AlpacaResult<Vec<crate::device::common::DeviceStateItem>> {
+        use crate::device::common::DeviceStateItem;
+        self.check_move_complete();
+        Ok(vec![
+            DeviceStateItem {
+                name: "IsMoving".into(),
+                value: serde_json::json!(self.move_start.lock().unwrap().is_some()),
+            },
+            DeviceStateItem {
+                name: "MechanicalPosition".into(),
+                value: serde_json::json!(*self.mechanical_position.lock().unwrap()),
+            },
+            DeviceStateItem {
+                name: "Position".into(),
+                value: serde_json::json!(*self.position.lock().unwrap()),
+            },
+        ])
+    }
+}
 
 impl Rotator for MockRotator {
     fn can_reverse(&self) -> AlpacaResult<bool> {

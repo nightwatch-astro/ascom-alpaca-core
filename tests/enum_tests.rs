@@ -236,7 +236,7 @@ fn axis_rates_roundtrip() {
         minimum: 0.0,
         maximum: 4.178,
     };
-    let json = serde_json::to_value(rates).unwrap();
+    let json = serde_json::to_value(&rates).unwrap();
     assert_eq!(json["Minimum"], 0.0);
     assert_eq!(json["Maximum"], 4.178);
 

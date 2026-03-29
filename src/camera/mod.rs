@@ -246,14 +246,10 @@ pub trait Camera: Device {
         Err(AlpacaError::NotImplemented("heat_sink_temperature".into()))
     }
 
-    /// Returns the target CCD temperature (ASCOM property: `SetCCDTemperature`).
     fn set_ccd_temperature(&self) -> AlpacaResult<f64> {
         Err(AlpacaError::NotImplemented("set_ccd_temperature".into()))
     }
 
-    /// Sets the target CCD temperature. The double "set" is intentional —
-    /// `SetCCDTemperature` is the ASCOM property name (the target temp),
-    /// so its setter becomes `set_set_ccd_temperature`.
     fn set_set_ccd_temperature(&self, _temp: f64) -> AlpacaResult<()> {
         Err(AlpacaError::NotImplemented(
             "set_set_ccd_temperature".into(),

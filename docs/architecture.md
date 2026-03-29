@@ -154,29 +154,6 @@ conformu_harness.rs (tiny_http server)
 - Response envelope construction with transaction IDs
 - Error mapping (trait errors → JSON error responses)
 
-### Internal macros
-
-The ConformU module uses two internal macros to reduce boilerplate:
-
-- **`impl_mock_device!`** (in `mocks/mod.rs`) — generates the `impl Device for MockX` block with standard connected/disconnect/driver_info plumbing. Accepts string literals for most devices or `name_field:`/`unique_id_field:` for devices with dynamic identity (Camera). The `device_state` parameter takes a closure.
-- **`typed_getter!`** (in `registry/mod.rs`) — generates feature-gated `get_<device>(&self, num) -> Result<&dyn Trait, RegistryError>` methods on `DeviceRegistry`. Each invocation maps a method name, feature flag, DeviceType variant, RegisteredDevice variant, and trait path.
-
-These are private — crate users don't interact with them.
-
-### DeviceStateBuilder
-
-`DeviceStateBuilder` (in `device/common.rs`, exported in prelude) is a public API for constructing `Vec<DeviceStateItem>` without manual struct construction:
-
-```rust
-DeviceStateBuilder::new()
-    .add("CameraState", state as i32)
-    .add("Temperature", -10.0)
-    .add("ImageReady", true)
-    .build()
-```
-
-Used internally by all 10 mock `device_state()` implementations and available to crate consumers for their own device implementations.
-
 ### Mock devices
 
 Each mock implements the full device trait with configurable capabilities:

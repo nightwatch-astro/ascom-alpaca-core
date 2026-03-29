@@ -1,4 +1,6 @@
-use ascom_alpaca_core::management::{ConfiguredDevice, ServerDescription, ServerInfo};
+use ascom_alpaca_core::management::{
+    ApiVersionsResponse, ConfiguredDevice, ServerDescription, ServerInfo,
+};
 use ascom_alpaca_core::types::DeviceType;
 
 #[test]

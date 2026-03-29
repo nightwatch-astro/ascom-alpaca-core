@@ -1,6 +1,5 @@
 //! Framework-agnostic ASCOM Alpaca protocol types and traits for Rust.
 //!
-//!
 //! This crate provides the complete ASCOM Alpaca protocol abstraction: typed response
 //! envelopes, error codes, device traits for all 10 ASCOM device types (~220 methods),
 //! domain enums, device registry, and conformance validation.
@@ -39,7 +38,6 @@ pub mod telescope;
 
 /// Re-exports of the most commonly used types.
 pub mod prelude {
-    pub use crate::device::common::DeviceStateBuilder;
     pub use crate::device::{Device, RegisteredDevice};
     pub use crate::discovery::{
         DiscoveryResponse, DEFAULT_DISCOVERY_PORT, DISCOVERY_PROBE, IPV6_MULTICAST,

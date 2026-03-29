@@ -14,6 +14,7 @@ pub enum ShutterState {
     Error = 4,
 }
 
+/// ASCOM Dome device trait.
 /// ASCOM Dome device trait (IDomeV3).
 ///
 /// Controls observatory dome rotation and shutter. Capabilities are individually

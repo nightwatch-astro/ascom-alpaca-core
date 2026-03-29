@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0](https://github.com/nightwatch-astro/ascom-alpaca-core/compare/v0.1.4...v0.2.0) - 2026-03-29
+
+### Features
+
+- *(ci)* add id-token permission for trusted publishing ([#96](https://github.com/nightwatch-astro/ascom-alpaca-core/pull/96))
+
+### Miscellaneous
+
+- add .gitattributes for linguist-generated patterns ([#98](https://github.com/nightwatch-astro/ascom-alpaca-core/pull/98))
+- *(ci)* cache ConformU, parallelize jobs, reusable release workflow ([#93](https://github.com/nightwatch-astro/ascom-alpaca-core/pull/93))
+
 ## [0.1.4](https://github.com/nightwatch-astro/ascom-alpaca-core/compare/v0.1.3...v0.1.4) - 2026-03-28
 
 ### Performance

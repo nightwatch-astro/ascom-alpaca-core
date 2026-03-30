@@ -82,7 +82,6 @@ impl AlpacaError {
     }
 }
 
-
 /// Convenience type alias for ASCOM Alpaca results.
 pub type AlpacaResult<T> = Result<T, AlpacaError>;
 

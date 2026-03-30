@@ -1,33 +1,31 @@
-use std::fmt;
-
 /// Protocol-level errors that appear in the Alpaca JSON response body (HTTP 200).
 ///
 /// Error codes follow the ASCOM Alpaca specification:
 /// - 0x400-0x40E: Standard ASCOM error codes
 /// - 0x500-0xFFF: Driver-specific error codes
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum AlpacaError {
-    /// Method or property not implemented (0x400 / 1024)
+    #[error("Not implemented: {0}")]
     NotImplemented(String),
-    /// Invalid value was supplied (0x401 / 1025)
+    #[error("Invalid value: {0}")]
     InvalidValue(String),
-    /// Value has not been set (0x402 / 1026)
+    #[error("Value not set: {0}")]
     ValueNotSet(String),
-    /// Device is not connected (0x407 / 1031)
+    #[error("Not connected: {0}")]
     NotConnected(String),
-    /// Invalid operation while device is parked (0x408 / 1032)
+    #[error("Invalid while parked: {0}")]
     InvalidWhileParked(String),
-    /// Invalid operation while device is slaved (0x409 / 1033)
+    #[error("Invalid while slaved: {0}")]
     InvalidWhileSlaved(String),
-    /// General invalid operation (0x40B / 1035)
+    #[error("Invalid operation: {0}")]
     InvalidOperationException(String),
-    /// Action command not implemented (0x40C / 1036)
+    #[error("Action not implemented: {0}")]
     ActionNotImplemented(String),
-    /// Operation was cancelled (0x40E / 1038)
+    #[error("Operation cancelled: {0}")]
     OperationCancelled(String),
-    /// Driver-specific error (0x500-0xFFF / 1280-4095)
+    #[error("Driver error (0x{code:X}): {message}")]
     DriverError { code: u32, message: String },
-    /// Unknown error code
+    #[error("Unknown error (0x{0:X})")]
     Unknown(u32),
 }
 
@@ -83,28 +81,6 @@ impl AlpacaError {
         }
     }
 }
-
-impl fmt::Display for AlpacaError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::NotImplemented(msg) => write!(f, "Not implemented: {msg}"),
-            Self::InvalidValue(msg) => write!(f, "Invalid value: {msg}"),
-            Self::ValueNotSet(msg) => write!(f, "Value not set: {msg}"),
-            Self::NotConnected(msg) => write!(f, "Not connected: {msg}"),
-            Self::InvalidWhileParked(msg) => write!(f, "Invalid while parked: {msg}"),
-            Self::InvalidWhileSlaved(msg) => write!(f, "Invalid while slaved: {msg}"),
-            Self::InvalidOperationException(msg) => write!(f, "Invalid operation: {msg}"),
-            Self::ActionNotImplemented(msg) => write!(f, "Action not implemented: {msg}"),
-            Self::OperationCancelled(msg) => write!(f, "Operation cancelled: {msg}"),
-            Self::DriverError { code, message } => {
-                write!(f, "Driver error (0x{code:X}): {message}")
-            }
-            Self::Unknown(code) => write!(f, "Unknown error (0x{code:X})"),
-        }
-    }
-}
-
-impl std::error::Error for AlpacaError {}
 
 /// Convenience type alias for ASCOM Alpaca results.
 pub type AlpacaResult<T> = Result<T, AlpacaError>;

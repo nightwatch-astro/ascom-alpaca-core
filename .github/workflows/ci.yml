@@ -1,1 +1,350 @@
-name: CI  on:   push:   pull_request:  # Cancel duplicate runs: when a PR exists, the push event is redundant. # Use head_ref (branch name) for PRs, ref for pushes — same branch collapses to one run. concurrency:   group: ci-${{ github.head_ref || github.ref }}   cancel-in-progress: true  env:   CARGO_TERM_COLOR: always  jobs:   pr-title:     if: github.event_name == 'pull_request'     runs-on: ubuntu-latest     steps:       - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6         env:           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}    test:     runs-on: ubuntu-latest     steps:       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2       - run: cargo test --all-features       - run: cargo test --no-default-features       - name: Verify publishable         run: cargo publish --dry-run    lint:     runs-on: ubuntu-latest     steps:       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable         with:           components: clippy, rustfmt       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2       - run: cargo clippy --all-features -- -D warnings       - run: cargo fmt --check    check-features:     runs-on: ubuntu-latest     steps:       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2       - run: cargo check --no-default-features       - run: cargo check --no-default-features --features safety_monitor       - run: cargo check --no-default-features --features camera       - run: cargo check --no-default-features --features telescope       - run: cargo check --no-default-features --features dome    changes:     if: github.event_name == 'pull_request'     runs-on: ubuntu-latest     outputs:       rust: ${{ steps.filter.outputs.rust }}     steps:       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6       - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4         id: filter         with:           filters: |             rust:               - 'src/**'               - 'Cargo.toml'               - 'Cargo.lock'    semver-check:     needs: changes     if: github.event_name == 'pull_request' && needs.changes.outputs.rust == 'true'     runs-on: ubuntu-latest     steps:       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6       - uses: obi1kenobi/cargo-semver-checks-action@5b298c9520f7096a4683c0bd981a7ac5a7e249ae # v2    validate-specs:     runs-on: ubuntu-latest     steps:       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6         with:           node-version: 20       - run: npx @scalar/cli document validate tests/fixtures/AlpacaDeviceAPI_v1.yaml       - run: npx @scalar/cli document validate tests/fixtures/AlpacaManagementAPI_v1.yaml    # Determine which ConformU device tests to run based on changed files   conformu-filter:     if: github.event_name == 'pull_request'     runs-on: ubuntu-latest     outputs:       devices: ${{ steps.filter.outputs.devices }}       any_changed: ${{ steps.filter.outputs.any_changed }}     steps:       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6         with:           fetch-depth: 0        - name: Determine affected devices         id: filter         env:           EVENT_NAME: ${{ github.event_name }}           EVENT_BEFORE: ${{ github.event.before }}           BASE_REF: ${{ github.base_ref }}         run: |           if [ "$EVENT_NAME" = "push" ]; then             BASE="$EVENT_BEFORE"           else             # Ensure base ref is available for comparison             git fetch origin "$BASE_REF" --depth=1 2>/dev/null || true             BASE="origin/$BASE_REF"           fi            # Get changed files (fallback to full run if diff fails or returns empty)           CHANGED=$(git diff --name-only "$BASE" HEAD 2>/dev/null) || CHANGED="FULL_RUN"           if [ -z "$CHANGED" ]; then             CHANGED="FULL_RUN"           fi           echo "Changed files: $CHANGED"            # Shared files that affect all devices           SHARED_PATTERNS="src/types/|src/device/|src/registry/|src/discovery/|src/management/|src/lib.rs|src/conformu/dispatch.rs|src/conformu/management.rs"            # Each matrix entry: {"device": "type/num", "settings": "file", "name": "label"}           # Telescope is split into core (slews, tracking) and pier (SideOfPier + 7-min meridian wait)           ALL_ENTRIES='[{"device":"safetymonitor/0","settings":"base","name":"safetymonitor-0"},{"device":"camera/0","settings":"base","name":"camera-0"},{"device":"camera/1","settings":"base","name":"camera-1"},{"device":"switch/0","settings":"base","name":"switch-0"},{"device":"covercalibrator/0","settings":"base","name":"covercalibrator-0"},{"device":"dome/0","settings":"base","name":"dome-0"},{"device":"filterwheel/0","settings":"base","name":"filterwheel-0"},{"device":"focuser/0","settings":"base","name":"focuser-0"},{"device":"observingconditions/0","settings":"base","name":"observingconditions-0"},{"device":"rotator/0","settings":"base","name":"rotator-0"},{"device":"telescope/0","settings":"telescope-core","name":"telescope-core"},{"device":"telescope/0","settings":"telescope-pier","name":"telescope-pier"}]'            if echo "$CHANGED" | grep -qE "$SHARED_PATTERNS" || echo "$CHANGED" | grep -q "FULL_RUN"; then             echo "devices=$ALL_ENTRIES" >> "$GITHUB_OUTPUT"             echo "any_changed=true" >> "$GITHUB_OUTPUT"             echo "Shared files changed — testing all devices"             exit 0           fi            # Map file paths to device entries           ENTRIES=""           SEEN=""            add_entry() {             local pattern="$1" device="$2" settings="$3" name="$4"             if echo "$CHANGED" | grep -q "$pattern"; then               if ! echo "$SEEN" | grep -q "$name"; then                 [ -n "$ENTRIES" ] && ENTRIES="${ENTRIES},"                 ENTRIES="${ENTRIES}{\"device\":\"${device}\",\"settings\":\"${settings}\",\"name\":\"${name}\"}"                 SEEN="${SEEN} ${name}"               fi             fi           }            add_entry "src/safety_monitor/" "safetymonitor/0" "base" "safetymonitor-0"           add_entry "src/conformu/mocks/safety_monitor" "safetymonitor/0" "base" "safetymonitor-0"           add_entry "src/camera/" "camera/0" "base" "camera-0"           add_entry "src/conformu/mocks/camera" "camera/0" "base" "camera-0"           add_entry "src/switch/" "switch/0" "base" "switch-0"           add_entry "src/conformu/mocks/switch" "switch/0" "base" "switch-0"           add_entry "src/cover_calibrator/" "covercalibrator/0" "base" "covercalibrator-0"           add_entry "src/conformu/mocks/cover_calibrator" "covercalibrator/0" "base" "covercalibrator-0"           add_entry "src/dome/" "dome/0" "base" "dome-0"           add_entry "src/conformu/mocks/dome" "dome/0" "base" "dome-0"           add_entry "src/filter_wheel/" "filterwheel/0" "base" "filterwheel-0"           add_entry "src/conformu/mocks/filter_wheel" "filterwheel/0" "base" "filterwheel-0"           add_entry "src/focuser/" "focuser/0" "base" "focuser-0"           add_entry "src/conformu/mocks/focuser" "focuser/0" "base" "focuser-0"           add_entry "src/observing_conditions/" "observingconditions/0" "base" "observingconditions-0"           add_entry "src/conformu/mocks/observing_conditions" "observingconditions/0" "base" "observingconditions-0"           add_entry "src/rotator/" "rotator/0" "base" "rotator-0"           add_entry "src/conformu/mocks/rotator" "rotator/0" "base" "rotator-0"           # Telescope changes trigger both core and pier jobs           add_entry "src/telescope/" "telescope/0" "telescope-core" "telescope-core"           add_entry "src/conformu/mocks/telescope" "telescope/0" "telescope-core" "telescope-core"           add_entry "src/telescope/" "telescope/0" "telescope-pier" "telescope-pier"           add_entry "src/conformu/mocks/telescope" "telescope/0" "telescope-pier" "telescope-pier"            # Camera changes also need color camera test           if echo "$SEEN" | grep -q "camera-0"; then             [ -n "$ENTRIES" ] && ENTRIES="${ENTRIES},"             ENTRIES="${ENTRIES}{\"device\":\"camera/1\",\"settings\":\"base\",\"name\":\"camera-1\"}"           fi            if [ -z "$ENTRIES" ]; then             echo "any_changed=false" >> "$GITHUB_OUTPUT"             echo "devices=[]" >> "$GITHUB_OUTPUT"             echo "No device files changed — skipping ConformU"           else             echo "any_changed=true" >> "$GITHUB_OUTPUT"             echo "devices=[${ENTRIES}]" >> "$GITHUB_OUTPUT"             echo "Devices to test: [${ENTRIES}]"           fi    conformu:     runs-on: ubuntu-latest     timeout-minutes: 30     needs: [conformu-filter]     if: needs.conformu-filter.outputs.any_changed == 'true'     strategy:       fail-fast: false       matrix:         include: ${{ fromJson(needs.conformu-filter.outputs.devices) }}     env:       CONFORMU_VERSION: "4.2.1"     steps:       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable        - name: Cache cargo build         uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5         with:           path: |             target             ~/.cargo/registry             ~/.cargo/git           key: conformu-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}        - name: Cache ConformU         id: conformu-cache         uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5         with:           path: conformu           key: conformu-v${{ env.CONFORMU_VERSION }}-linux-x64        - name: Download ConformU         if: steps.conformu-cache.outputs.cache-hit != 'true'         run: |           curl -sL "https://github.com/ASCOMInitiative/ConformU/releases/download/v${CONFORMU_VERSION}/conformu.linux-x64.tar.xz" \             -o conformu.tar.xz           tar xJf conformu.tar.xz           chmod +x conformu           rm conformu.tar.xz        - name: Add ConformU to PATH         run: echo "$PWD" >> "$GITHUB_PATH"        - name: Build and start test harness         run: |           cargo build --example conformu_harness --features conformu --release           cargo run --example conformu_harness --features conformu --release &           sleep 3           curl -sf http://127.0.0.1:32888/management/apiversions || (echo "Harness failed to start" && exit 1)        - name: Prepare settings         env:           DEVICE: ${{ matrix.device }}           SETTINGS: ${{ matrix.settings }}         run: |           DEVICE_TYPE=$(echo "$DEVICE" | cut -d/ -f1)           DEVICE_NUM=$(echo "$DEVICE" | cut -d/ -f2)           SETTINGS_FILE=".github/conformu-settings/${SETTINGS}.json"            # Inject AlpacaDevice and DeviceTechnology into settings for conformance-settings command           python3 - "$SETTINGS_FILE" "$DEVICE_TYPE" "$DEVICE_NUM" <<'PYEOF'           import json, sys           settings_file, device_type, device_num = sys.argv[1], sys.argv[2], int(sys.argv[3])           type_map = {             "safetymonitor": "SafetyMonitor", "camera": "Camera", "switch": "Switch",             "covercalibrator": "CoverCalibrator", "dome": "Dome", "filterwheel": "FilterWheel",             "focuser": "Focuser", "observingconditions": "ObservingConditions",             "rotator": "Rotator", "telescope": "Telescope"           }           with open(settings_file) as f:               settings = json.load(f)           settings["AlpacaDevice"] = {             "AscomDeviceType": type_map[device_type],             "AlpacaDeviceNumber": device_num,             "ServiceType": "Http",             "IpAddress": "127.0.0.1",             "IpPort": 32888,             "InterfaceVersion": 1           }           settings["DeviceTechnology"] = "Alpaca"           settings["DeviceType"] = type_map[device_type]           with open("conformu-active-settings.json", "w") as f:               json.dump(settings, f, indent=2)           PYEOF        - name: Run ConformU         env:           NAME: ${{ matrix.name }}         run: |           conformu conformance-settings \             --settingsfile conformu-active-settings.json \             --resultsfile "conformu-${NAME}.json" \             --logfilename "conformu-${NAME}.log" \             || true        - name: Check results         env:           NAME: ${{ matrix.name }}         run: |           python3 - <<PYEOF           import json, sys, os           name = os.environ["NAME"]           f = f"conformu-{name}.json"           try:               data = json.load(open(f))               errors = data.get("ErrorCount", 0)               issues = data.get("IssueCount", 0)               print(f"ConformU {name}: {errors} errors, {issues} issues")               if errors > 0:                   for e in data.get("Errors", []):                       print(f"  ERROR: {e['Key']}: {e['Value']}")                   print(f"::error::ConformU found {errors} conformance errors for {name}")                   sys.exit(1)               if issues > 0:                   for i in data.get("Issues", []):                       print(f"  ISSUE: {i['Key']}: {i['Value']}")                   print(f"::warning::ConformU found {issues} non-blocking issues for {name}")           except Exception as e:               print(f"::error::Failed to parse results: {e}")               sys.exit(1)           PYEOF        - name: Upload results         if: always()         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7         with:           name: conformu-${{ matrix.name }}           path: |             conformu-*.json             conformu-*.log
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Cancel duplicate runs: when a PR exists, the push event is redundant.
+# Use head_ref (branch name) for PRs, ref for pushes — same branch collapses to one run.
+concurrency:
+  group: ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  pr-title:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --all-features
+      - run: cargo test --no-default-features
+      - name: Verify publishable
+        run: cargo publish --dry-run
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy --all-features -- -D warnings
+      - run: cargo fmt --check
+
+  check-features:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo check --no-default-features
+      - run: cargo check --no-default-features --features safety_monitor
+      - run: cargo check --no-default-features --features camera
+      - run: cargo check --no-default-features --features telescope
+      - run: cargo check --no-default-features --features dome
+
+  changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      rust: ${{ steps.filter.outputs.rust }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            rust:
+              - 'src/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+
+  semver-check:
+    needs: changes
+    if: github.event_name == 'pull_request' && needs.changes.outputs.rust == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: obi1kenobi/cargo-semver-checks-action@v2
+
+  validate-specs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+      - run: npx @scalar/cli document validate tests/fixtures/AlpacaDeviceAPI_v1.yaml
+      - run: npx @scalar/cli document validate tests/fixtures/AlpacaManagementAPI_v1.yaml
+
+  # Determine which ConformU device tests to run based on changed files
+  conformu-filter:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      devices: ${{ steps.filter.outputs.devices }}
+      any_changed: ${{ steps.filter.outputs.any_changed }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Determine affected devices
+        id: filter
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ "$EVENT_NAME" = "push" ]; then
+            BASE="$EVENT_BEFORE"
+          else
+            # Ensure base ref is available for comparison
+            git fetch origin "$BASE_REF" --depth=1 2>/dev/null || true
+            BASE="origin/$BASE_REF"
+          fi
+
+          # Get changed files (fallback to full run if diff fails or returns empty)
+          CHANGED=$(git diff --name-only "$BASE" HEAD 2>/dev/null) || CHANGED="FULL_RUN"
+          if [ -z "$CHANGED" ]; then
+            CHANGED="FULL_RUN"
+          fi
+          echo "Changed files: $CHANGED"
+
+          # Shared files that affect all devices
+          SHARED_PATTERNS="src/types/|src/device/|src/registry/|src/discovery/|src/management/|src/lib.rs|src/conformu/dispatch.rs|src/conformu/management.rs"
+
+          # Each matrix entry: {"device": "type/num", "settings": "file", "name": "label"}
+          # Telescope is split into core (slews, tracking) and pier (SideOfPier + 7-min meridian wait)
+          ALL_ENTRIES='[{"device":"safetymonitor/0","settings":"base","name":"safetymonitor-0"},{"device":"camera/0","settings":"base","name":"camera-0"},{"device":"camera/1","settings":"base","name":"camera-1"},{"device":"switch/0","settings":"base","name":"switch-0"},{"device":"covercalibrator/0","settings":"base","name":"covercalibrator-0"},{"device":"dome/0","settings":"base","name":"dome-0"},{"device":"filterwheel/0","settings":"base","name":"filterwheel-0"},{"device":"focuser/0","settings":"base","name":"focuser-0"},{"device":"observingconditions/0","settings":"base","name":"observingconditions-0"},{"device":"rotator/0","settings":"base","name":"rotator-0"},{"device":"telescope/0","settings":"telescope-core","name":"telescope-core"},{"device":"telescope/0","settings":"telescope-pier","name":"telescope-pier"}]'
+
+          if echo "$CHANGED" | grep -qE "$SHARED_PATTERNS" || echo "$CHANGED" | grep -q "FULL_RUN"; then
+            echo "devices=$ALL_ENTRIES" >> "$GITHUB_OUTPUT"
+            echo "any_changed=true" >> "$GITHUB_OUTPUT"
+            echo "Shared files changed — testing all devices"
+            exit 0
+          fi
+
+          # Map file paths to device entries
+          ENTRIES=""
+          SEEN=""
+
+          add_entry() {
+            local pattern="$1" device="$2" settings="$3" name="$4"
+            if echo "$CHANGED" | grep -q "$pattern"; then
+              if ! echo "$SEEN" | grep -q "$name"; then
+                [ -n "$ENTRIES" ] && ENTRIES="${ENTRIES},"
+                ENTRIES="${ENTRIES}{\"device\":\"${device}\",\"settings\":\"${settings}\",\"name\":\"${name}\"}"
+                SEEN="${SEEN} ${name}"
+              fi
+            fi
+          }
+
+          add_entry "src/safety_monitor/" "safetymonitor/0" "base" "safetymonitor-0"
+          add_entry "src/conformu/mocks/safety_monitor" "safetymonitor/0" "base" "safetymonitor-0"
+          add_entry "src/camera/" "camera/0" "base" "camera-0"
+          add_entry "src/conformu/mocks/camera" "camera/0" "base" "camera-0"
+          add_entry "src/switch/" "switch/0" "base" "switch-0"
+          add_entry "src/conformu/mocks/switch" "switch/0" "base" "switch-0"
+          add_entry "src/cover_calibrator/" "covercalibrator/0" "base" "covercalibrator-0"
+          add_entry "src/conformu/mocks/cover_calibrator" "covercalibrator/0" "base" "covercalibrator-0"
+          add_entry "src/dome/" "dome/0" "base" "dome-0"
+          add_entry "src/conformu/mocks/dome" "dome/0" "base" "dome-0"
+          add_entry "src/filter_wheel/" "filterwheel/0" "base" "filterwheel-0"
+          add_entry "src/conformu/mocks/filter_wheel" "filterwheel/0" "base" "filterwheel-0"
+          add_entry "src/focuser/" "focuser/0" "base" "focuser-0"
+          add_entry "src/conformu/mocks/focuser" "focuser/0" "base" "focuser-0"
+          add_entry "src/observing_conditions/" "observingconditions/0" "base" "observingconditions-0"
+          add_entry "src/conformu/mocks/observing_conditions" "observingconditions/0" "base" "observingconditions-0"
+          add_entry "src/rotator/" "rotator/0" "base" "rotator-0"
+          add_entry "src/conformu/mocks/rotator" "rotator/0" "base" "rotator-0"
+          # Telescope changes trigger both core and pier jobs
+          add_entry "src/telescope/" "telescope/0" "telescope-core" "telescope-core"
+          add_entry "src/conformu/mocks/telescope" "telescope/0" "telescope-core" "telescope-core"
+          add_entry "src/telescope/" "telescope/0" "telescope-pier" "telescope-pier"
+          add_entry "src/conformu/mocks/telescope" "telescope/0" "telescope-pier" "telescope-pier"
+
+          # Camera changes also need color camera test
+          if echo "$SEEN" | grep -q "camera-0"; then
+            [ -n "$ENTRIES" ] && ENTRIES="${ENTRIES},"
+            ENTRIES="${ENTRIES}{\"device\":\"camera/1\",\"settings\":\"base\",\"name\":\"camera-1\"}"
+          fi
+
+          if [ -z "$ENTRIES" ]; then
+            echo "any_changed=false" >> "$GITHUB_OUTPUT"
+            echo "devices=[]" >> "$GITHUB_OUTPUT"
+            echo "No device files changed — skipping ConformU"
+          else
+            echo "any_changed=true" >> "$GITHUB_OUTPUT"
+            echo "devices=[${ENTRIES}]" >> "$GITHUB_OUTPUT"
+            echo "Devices to test: [${ENTRIES}]"
+          fi
+
+  conformu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [conformu-filter]
+    if: needs.conformu-filter.outputs.any_changed == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.conformu-filter.outputs.devices) }}
+    env:
+      CONFORMU_VERSION: "4.2.1"
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo build
+        uses: actions/cache@v5
+        with:
+          path: |
+            target
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: conformu-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+
+      - name: Cache ConformU
+        id: conformu-cache
+        uses: actions/cache@v5
+        with:
+          path: conformu
+          key: conformu-v${{ env.CONFORMU_VERSION }}-linux-x64
+
+      - name: Download ConformU
+        if: steps.conformu-cache.outputs.cache-hit != 'true'
+        run: |
+          curl -sL "https://github.com/ASCOMInitiative/ConformU/releases/download/v${CONFORMU_VERSION}/conformu.linux-x64.tar.xz" \
+            -o conformu.tar.xz
+          tar xJf conformu.tar.xz
+          chmod +x conformu
+          rm conformu.tar.xz
+
+      - name: Add ConformU to PATH
+        run: echo "$PWD" >> "$GITHUB_PATH"
+
+      - name: Build and start test harness
+        run: |
+          cargo build --example conformu_harness --features conformu --release
+          cargo run --example conformu_harness --features conformu --release &
+          sleep 3
+          curl -sf http://127.0.0.1:32888/management/apiversions || (echo "Harness failed to start" && exit 1)
+
+      - name: Prepare settings
+        env:
+          DEVICE: ${{ matrix.device }}
+          SETTINGS: ${{ matrix.settings }}
+        run: |
+          DEVICE_TYPE=$(echo "$DEVICE" | cut -d/ -f1)
+          DEVICE_NUM=$(echo "$DEVICE" | cut -d/ -f2)
+          SETTINGS_FILE=".github/conformu-settings/${SETTINGS}.json"
+
+          # Inject AlpacaDevice and DeviceTechnology into settings for conformance-settings command
+          python3 - "$SETTINGS_FILE" "$DEVICE_TYPE" "$DEVICE_NUM" <<'PYEOF'
+          import json, sys
+          settings_file, device_type, device_num = sys.argv[1], sys.argv[2], int(sys.argv[3])
+          type_map = {
+            "safetymonitor": "SafetyMonitor", "camera": "Camera", "switch": "Switch",
+            "covercalibrator": "CoverCalibrator", "dome": "Dome", "filterwheel": "FilterWheel",
+            "focuser": "Focuser", "observingconditions": "ObservingConditions",
+            "rotator": "Rotator", "telescope": "Telescope"
+          }
+          with open(settings_file) as f:
+              settings = json.load(f)
+          settings["AlpacaDevice"] = {
+            "AscomDeviceType": type_map[device_type],
+            "AlpacaDeviceNumber": device_num,
+            "ServiceType": "Http",
+            "IpAddress": "127.0.0.1",
+            "IpPort": 32888,
+            "InterfaceVersion": 1
+          }
+          settings["DeviceTechnology"] = "Alpaca"
+          settings["DeviceType"] = type_map[device_type]
+          with open("conformu-active-settings.json", "w") as f:
+              json.dump(settings, f, indent=2)
+          PYEOF
+
+      - name: Run ConformU
+        env:
+          NAME: ${{ matrix.name }}
+        run: |
+          conformu conformance-settings \
+            --settingsfile conformu-active-settings.json \
+            --resultsfile "conformu-${NAME}.json" \
+            --logfilename "conformu-${NAME}.log" \
+            || true
+
+      - name: Check results
+        env:
+          NAME: ${{ matrix.name }}
+        run: |
+          python3 - <<PYEOF
+          import json, sys, os
+          name = os.environ["NAME"]
+          f = f"conformu-{name}.json"
+          try:
+              data = json.load(open(f))
+              errors = data.get("ErrorCount", 0)
+              issues = data.get("IssueCount", 0)
+              print(f"ConformU {name}: {errors} errors, {issues} issues")
+              if errors > 0:
+                  for e in data.get("Errors", []):
+                      print(f"  ERROR: {e['Key']}: {e['Value']}")
+                  print(f"::error::ConformU found {errors} conformance errors for {name}")
+                  sys.exit(1)
+              if issues > 0:
+                  for i in data.get("Issues", []):
+                      print(f"  ISSUE: {i['Key']}: {i['Value']}")
+                  print(f"::error::ConformU found {issues} issues for {name}")
+                  sys.exit(1)
+          except Exception as e:
+              print(f"::error::Failed to parse results: {e}")
+              sys.exit(1)
+          PYEOF
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: conformu-${{ matrix.name }}
+          path: |
+            conformu-*.json
+            conformu-*.log
+
+  ci-ok:
+    name: CI OK
+    if: always()
+    needs: [pr-title, test, lint, check-features, validate-specs, semver-check, conformu]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate results
+        env:
+          PR_TITLE: ${{ needs.pr-title.result }}
+          TEST: ${{ needs.test.result }}
+          LINT: ${{ needs.lint.result }}
+          CHECK_FEATURES: ${{ needs.check-features.result }}
+          VALIDATE_SPECS: ${{ needs.validate-specs.result }}
+          SEMVER_CHECK: ${{ needs.semver-check.result }}
+          CONFORMU: ${{ needs.conformu.result }}
+        run: |
+          for result in "$PR_TITLE" "$TEST" "$LINT" "$CHECK_FEATURES" "$VALIDATE_SPECS" "$SEMVER_CHECK" "$CONFORMU"; do
+            if [ "$result" = "failure" ] || [ "$result" = "cancelled" ]; then
+              echo "Job failed: $result"
+              exit 1
+            fi
+          done
+          echo "All checks passed or were skipped"

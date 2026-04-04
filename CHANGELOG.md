@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4](https://github.com/nightwatch-astro/ascom-alpaca-core/compare/v0.2.3...v0.2.4) - 2026-04-04
+
+### Bug Fixes
+
+- *(ci)* treat conformu issues as warnings, not errors ([#107](https://github.com/nightwatch-astro/ascom-alpaca-core/pull/107))
+
+### Miscellaneous
+
+- pin GitHub Actions to commit SHAs
+- pin GitHub Actions to commit SHAs
+- add CODEOWNERS for CI security
+- add pre-commit config with Rust hooks ([#110](https://github.com/nightwatch-astro/ascom-alpaca-core/pull/110))
+
+### Refactoring
+
+- migrate AlpacaError to thiserror derive ([#109](https://github.com/nightwatch-astro/ascom-alpaca-core/pull/109))
+
 ## [0.2.3](https://github.com/nightwatch-astro/ascom-alpaca-core/compare/v0.2.2...v0.2.3) - 2026-03-29
 
 ### Bug Fixes

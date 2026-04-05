@@ -44,7 +44,7 @@ impl Default for MockTelescope {
 }
 
 impl MockTelescope {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             connected: Mutex::new(false),
             at_park: Mutex::new(true),
@@ -78,7 +78,7 @@ impl MockTelescope {
     }
 
     /// Check if a slew has completed (>4000ms elapsed) and update position.
-    /// ConformU requires slewing to be true for at least 3 seconds — use 4s for margin.
+    /// `ConformU` requires slewing to be true for at least 3 seconds — use 4s for margin.
     fn check_slew_complete(&self) {
         let mut slew = self.slew_start.lock().unwrap();
         if let Some(start) = *slew {
@@ -107,22 +107,22 @@ impl MockTelescope {
 
     /// Compute side of pier from hour angle.
     ///
-    /// ASCOM SideOfPier for a GEM:
+    /// ASCOM `SideOfPier` for a GEM:
     /// - pierEast (0) = "Normal" — counterweight down, OTA on east side, looking west.
     ///   This is the normal tracking position when the object is WEST of the meridian
     ///   (positive HA, object has crossed the meridian).
     /// - pierWest (1) = "Through the pole" — OTA on west side, looking east.
     ///   Object is EAST of the meridian (negative HA, before crossing).
-    fn compute_side_of_pier(&self, ra: f64, lst: f64) -> AlpacaResult<SideOfPier> {
+    fn compute_side_of_pier(ra: f64, lst: f64) -> SideOfPier {
         let ha = lst - ra;
         // Normalize HA to [-12, +12)
         let ha_norm = ((ha % 24.0) + 36.0) % 24.0 - 12.0;
         if ha_norm >= 0.0 {
             // Positive HA: object west of meridian → normal tracking → pierEast
-            Ok(SideOfPier::East)
+            SideOfPier::East
         } else {
             // Negative HA: object east of meridian → through the pole → pierWest
-            Ok(SideOfPier::West)
+            SideOfPier::West
         }
     }
 
@@ -164,6 +164,9 @@ impl_mock_device!(MockTelescope,
     }
 );
 
+// option_if_let_else: The suggested map_or_else requires closures that can't borrow
+// Mutex guards already held. The if-let form is clearer for mock code.
+#[allow(clippy::option_if_let_else)]
 impl Telescope for MockTelescope {
     // --- Position & coordinates ---
 
@@ -253,7 +256,8 @@ impl Telescope for MockTelescope {
         let jd = secs / 86400.0 + 2440587.5;
         // Greenwich Mean Sidereal Time (hours)
         let t = (jd - 2451545.0) / 36525.0;
-        let gmst = 280.46061837 + 360.98564736629 * (jd - 2451545.0) + 0.000387933 * t * t;
+        let gmst =
+            (0.000387933 * t).mul_add(t, 360.98564736629f64.mul_add(jd - 2451545.0, 280.46061837));
         let gmst_hours = (gmst % 360.0 + 360.0) % 360.0 / 15.0;
         // Add site longitude (degrees -> hours)
         let lon = *self.site_longitude.lock().unwrap();
@@ -414,7 +418,7 @@ impl Telescope for MockTelescope {
             )));
         }
         let lst = self.sidereal_time()?;
-        self.compute_side_of_pier(ra, lst)
+        Ok(Self::compute_side_of_pier(ra, lst))
     }
 
     // --- Tracking ---
@@ -460,8 +464,7 @@ impl Telescope for MockTelescope {
         let current_rate = *self.tracking_rate.lock().unwrap();
         if current_rate != DriveRate::Sidereal {
             return Err(AlpacaError::InvalidOperationException(format!(
-                "Cannot set RightAscensionRate when tracking rate is {:?} (must be Sidereal)",
-                current_rate
+                "Cannot set RightAscensionRate when tracking rate is {current_rate:?} (must be Sidereal)"
             )));
         }
         self.check_slew_complete();
@@ -500,8 +503,7 @@ impl Telescope for MockTelescope {
         let current_rate = *self.tracking_rate.lock().unwrap();
         if current_rate != DriveRate::Sidereal {
             return Err(AlpacaError::InvalidOperationException(format!(
-                "Cannot set DeclinationRate when tracking rate is {:?} (must be Sidereal)",
-                current_rate
+                "Cannot set DeclinationRate when tracking rate is {current_rate:?} (must be Sidereal)"
             )));
         }
         self.check_slew_complete();
@@ -570,7 +572,7 @@ impl Telescope for MockTelescope {
         self.check_not_parked()?;
         // ASCOM guide rates are per sidereal second, but duration is in solar milliseconds.
         // Convert solar time to sidereal time: sidereal_sec = solar_sec * (86400 / 86164.0905)
-        let solar_secs = duration as f64 / 1000.0;
+        let solar_secs = f64::from(duration) / 1000.0;
         let sidereal_secs = solar_secs * (86400.0 / 86164.0905);
         let guide_ra = *self.guide_rate_ra.lock().unwrap();
         let guide_dec = *self.guide_rate_dec.lock().unwrap();
@@ -639,7 +641,7 @@ impl Telescope for MockTelescope {
     fn side_of_pier(&self) -> AlpacaResult<SideOfPier> {
         let ra = self.right_ascension()?;
         let lst = self.sidereal_time()?;
-        self.compute_side_of_pier(ra, lst)
+        Ok(Self::compute_side_of_pier(ra, lst))
     }
 
     fn set_side_of_pier(&self, side: SideOfPier) -> AlpacaResult<()> {
@@ -652,7 +654,7 @@ impl Telescope for MockTelescope {
             // Mirror RA across the current LST to flip the hour angle
             let lst = self.sidereal_time()?;
             let current_ra = *self.ra.lock().unwrap();
-            let new_ra = ((2.0 * lst - current_ra) % 24.0 + 24.0) % 24.0;
+            let new_ra = (2.0f64.mul_add(lst, -current_ra) % 24.0 + 24.0) % 24.0;
             *self.ra.lock().unwrap() = new_ra;
             *self.rate_base_ra.lock().unwrap() = new_ra;
         }
@@ -703,6 +705,7 @@ impl Telescope for MockTelescope {
         Ok(())
     }
 
+    #[allow(clippy::many_single_char_names)] // Hinnant civil_from_days algorithm uses standard mathematical names
     fn utc_date(&self) -> AlpacaResult<String> {
         let secs = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)

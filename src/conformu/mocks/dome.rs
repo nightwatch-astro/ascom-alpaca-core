@@ -26,7 +26,7 @@ impl Default for MockDome {
 }
 
 impl MockDome {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             connected: Mutex::new(false),
             shutter: Mutex::new(ShutterState::Closed),
@@ -44,7 +44,7 @@ impl MockDome {
     }
 
     /// Check if azimuth/altitude slews have completed.
-    /// ConformU requires slewing to be true for at least 3 seconds — use 4s for margin.
+    /// `ConformU` requires slewing to be true for at least 3 seconds — use 4s for margin.
     fn check_slew_complete(&self) {
         let start = *self.slew_start.lock().unwrap();
         if let Some(started_at) = start {

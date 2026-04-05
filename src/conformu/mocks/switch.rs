@@ -81,7 +81,7 @@ impl MockSwitch {
         let clamped = value.clamp(ch.min, ch.max);
         if ch.step > 0.0 {
             let steps = ((clamped - ch.min) / ch.step).round();
-            (ch.min + steps * ch.step).min(ch.max)
+            steps.mul_add(ch.step, ch.min).min(ch.max)
         } else {
             clamped
         }

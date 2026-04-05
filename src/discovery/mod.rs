@@ -13,6 +13,7 @@ pub const IPV6_MULTICAST: &str = "ff12::a1:9aca";
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct DiscoveryResponse {
+    /// The TCP port on which the Alpaca server is listening.
     pub alpaca_port: u16,
 }
 

@@ -3,6 +3,10 @@ use std::fmt;
 /// Protocol-level errors that appear in the Alpaca JSON response body (HTTP 200).
 ///
 /// Error codes follow the ASCOM Alpaca specification:
+/// - `0x400`--`0x40E`: Standard ASCOM error codes
+/// - `0x500`--`0xFFF`: Driver-specific error codes
+///
+/// Error codes follow the ASCOM Alpaca specification:
 /// - 0x400-0x40E: Standard ASCOM error codes
 /// - 0x500-0xFFF: Driver-specific error codes
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -26,14 +30,24 @@ pub enum AlpacaError {
     /// Operation was cancelled (0x40E / 1038)
     OperationCancelled(String),
     /// Driver-specific error (0x500-0xFFF / 1280-4095)
-    DriverError { code: u32, message: String },
+    DriverError {
+        /// The driver-specific error code (0x500--0xFFF).
+        code: u32,
+        /// Human-readable error description.
+        message: String,
+    },
     /// Unknown error code
     Unknown(u32),
 }
 
 impl AlpacaError {
     /// Returns the ASCOM error code for this error.
-    pub fn error_code(&self) -> i32 {
+    ///
+    /// Driver-specific codes (`0x500`--`0xFFF`) and unknown codes are
+    /// truncated to `i32`. Values above `i32::MAX` are not expected in
+    /// practice per the ASCOM specification.
+    #[allow(clippy::cast_possible_wrap)]
+    pub const fn error_code(&self) -> i32 {
         match self {
             Self::NotImplemented(_) => 0x400,
             Self::InvalidValue(_) => 0x401,
@@ -44,8 +58,7 @@ impl AlpacaError {
             Self::InvalidOperationException(_) => 0x40B,
             Self::ActionNotImplemented(_) => 0x40C,
             Self::OperationCancelled(_) => 0x40E,
-            Self::DriverError { code, .. } => *code as i32,
-            Self::Unknown(code) => *code as i32,
+            Self::DriverError { code, .. } | Self::Unknown(code) => *code as i32,
         }
     }
 
@@ -66,7 +79,7 @@ impl AlpacaError {
         }
     }
 
-    /// Creates an AlpacaError from a numeric error code and message.
+    /// Creates an `AlpacaError` from a numeric error code and message.
     pub fn from_code(code: u32, message: String) -> Self {
         match code {
             0x400 => Self::NotImplemented(message),
@@ -114,11 +127,15 @@ pub type AlpacaResult<T> = Result<T, AlpacaError>;
 /// These map to HTTP status codes (e.g., 400 Bad Request), not JSON error envelopes.
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum RegistryError {
+    /// The requested device number was not found in the registry.
     #[error("Device not found: {device_type} device {device_number}")]
     DeviceNotFound {
+        /// The type of device that was requested.
         device_type: crate::types::DeviceType,
+        /// The device number that was requested.
         device_number: u32,
     },
+    /// No devices of the requested type are registered.
     #[error("No devices registered for type: {0}")]
     DeviceTypeNotRegistered(crate::types::DeviceType),
 }

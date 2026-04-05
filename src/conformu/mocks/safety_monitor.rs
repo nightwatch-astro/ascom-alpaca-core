@@ -14,7 +14,7 @@ impl Default for MockSafetyMonitor {
 }
 
 impl MockSafetyMonitor {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             connected: Mutex::new(false),
         }

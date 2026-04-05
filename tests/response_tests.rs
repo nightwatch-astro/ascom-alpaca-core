@@ -42,7 +42,7 @@ fn alpaca_response_ok_vec_string() {
 
 #[test]
 fn alpaca_response_error_has_no_value() {
-    let resp = AlpacaResponse::<bool>::from_error(AlpacaError::NotConnected("offline".into()));
+    let resp = AlpacaResponse::<bool>::from_error(&AlpacaError::NotConnected("offline".into()));
     let json = serde_json::to_value(&resp).unwrap();
 
     assert!(
@@ -101,7 +101,7 @@ fn method_response_ok() {
 
 #[test]
 fn method_response_error() {
-    let resp = MethodResponse::from_error(AlpacaError::InvalidWhileParked("can't slew".into()));
+    let resp = MethodResponse::from_error(&AlpacaError::InvalidWhileParked("can't slew".into()));
     let json = serde_json::to_value(&resp).unwrap();
 
     assert_eq!(json["ErrorNumber"], 0x408);

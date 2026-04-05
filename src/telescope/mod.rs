@@ -1,3 +1,4 @@
+/// Telescope-specific enums and types.
 pub mod types;
 
 pub use types::*;
@@ -23,7 +24,7 @@ use crate::types::{AlpacaError, AlpacaResult};
 ///   Earth's rotation, keeping the telescope on the same celestial coordinates.
 ///   Only `RightAscensionRate` (an offset from sidereal) causes RA to drift.
 /// - **Guide rates** are in degrees per sidereal second (RA) or degrees per SI second (Dec).
-/// - **SideOfPier**: `East` (0) = normal, scope on east side looking west (HA > 0).
+/// - **`SideOfPier`**: `East` (0) = normal, scope on east side looking west (HA > 0).
 ///   `West` (1) = through-the-pole, scope on west side (HA < 0).
 ///
 /// # Example
@@ -49,6 +50,7 @@ use crate::types::{AlpacaError, AlpacaResult};
 ///     }
 /// }
 /// ```
+#[allow(missing_docs)] // ~60 trait methods map 1:1 to ASCOM ITelescopeV4 — names are self-documenting
 pub trait Telescope: Device {
     // --- Position & coordinates ---
 

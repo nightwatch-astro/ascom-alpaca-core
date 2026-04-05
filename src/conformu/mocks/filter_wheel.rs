@@ -18,7 +18,7 @@ impl Default for MockFilterWheel {
 }
 
 impl MockFilterWheel {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             connected: Mutex::new(false),
             position: Mutex::new(0),

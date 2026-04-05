@@ -20,7 +20,7 @@ impl Default for MockRotator {
 }
 
 impl MockRotator {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             connected: Mutex::new(false),
             position: Mutex::new(0.0),

@@ -8,6 +8,7 @@ pub struct ClientTracker {
 }
 
 impl ClientTracker {
+    /// Creates an empty client tracker.
     pub fn new() -> Self {
         Self {
             clients: HashMap::new(),

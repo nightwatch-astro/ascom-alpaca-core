@@ -5,12 +5,13 @@ use crate::camera::{Camera, CameraState, GuideDirection, ImageData, SensorType};
 use crate::types::{AlpacaError, AlpacaResult, DeviceType};
 
 /// Gain/offset mode selection — ASCOM cameras use exactly one of these.
-/// Numeric: `gain/gain_min/gain_max` work, `gains()` → NotImplemented.
-/// Named: `gains()` returns a list, `gain_min/gain_max` → NotImplemented,
+///
+/// Numeric: `gain/gain_min/gain_max` work, `gains()` → `NotImplemented`.
+/// Named: `gains()` returns a list, `gain_min/gain_max` → `NotImplemented`,
 ///   `gain/set_gain` use indices into the names list.
 #[derive(Clone)]
 pub enum GainOffsetMode {
-    /// Not supported — all methods return NotImplemented.
+    /// Not supported — all methods return `NotImplemented`.
     None,
     /// Numeric range: gain/offset is a value in min..=max.
     Numeric { min: i32, max: i32 },
@@ -19,6 +20,7 @@ pub enum GainOffsetMode {
 }
 
 /// Feature flags for optional Camera capabilities.
+#[allow(clippy::struct_excessive_bools)] // ASCOM defines these as independent boolean capabilities
 pub struct CameraFeatures {
     pub cooler: bool,
     pub pulse_guide: bool,
@@ -141,7 +143,7 @@ impl MockCamera {
         }
     }
 
-    /// All features enabled with numeric gain/offset — for full ConformU sweep.
+    /// All features enabled with numeric gain/offset — for full `ConformU` sweep.
     pub fn full_featured() -> Self {
         Self::with_features(CameraFeatures {
             cooler: true,
@@ -158,7 +160,7 @@ impl MockCamera {
 }
 
 /// Simple epoch-days-to-date conversion (no chrono dependency).
-fn epoch_days_to_ymd(days: u64) -> (u64, u64, u64) {
+const fn epoch_days_to_ymd(days: u64) -> (u64, u64, u64) {
     // Algorithm from http://howardhinnant.github.io/date_algorithms.html
     let z = days + 719468;
     let era = z / 146097;

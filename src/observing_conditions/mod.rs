@@ -1,7 +1,7 @@
 use crate::device::Device;
 use crate::types::{AlpacaError, AlpacaResult};
 
-/// ASCOM ObservingConditions device trait (IObservingConditionsV2).
+/// ASCOM `ObservingConditions` device trait (`IObservingConditionsV2`).
 ///
 /// Weather station providing up to 13 sensor readings: cloud cover, dew point,
 /// humidity, pressure, rain rate, sky brightness, sky quality, sky temperature,
@@ -9,6 +9,7 @@ use crate::types::{AlpacaError, AlpacaResult};
 ///
 /// Use `sensor_description` and `time_of_latest_update` for per-sensor metadata.
 /// `average_period` controls the time window for averaged readings.
+#[allow(missing_docs)] // Trait methods map 1:1 to ASCOM IObservingConditionsV2
 pub trait ObservingConditions: Device {
     fn cloud_cover(&self) -> AlpacaResult<f64> {
         Err(AlpacaError::NotImplemented("cloud_cover".into()))

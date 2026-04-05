@@ -7,33 +7,49 @@
 //!
 //! No HTTP framework, no async runtime — works on ESP32 and desktop.
 
+/// Base device trait and heterogeneous device storage.
 pub mod device;
+/// Alpaca UDP discovery protocol.
 pub mod discovery;
+/// Server management API types.
 pub mod management;
+/// Device registry for multi-device servers.
 pub mod registry;
+/// Core protocol types: errors, responses, device types, parameters.
 pub mod types;
 
+/// `ConformU` test harness for conformance validation.
 #[cfg(feature = "conformu")]
 pub mod conformu;
 
+/// ASCOM Camera device type.
 #[cfg(feature = "camera")]
 pub mod camera;
+/// ASCOM `CoverCalibrator` device type.
 #[cfg(feature = "cover_calibrator")]
 pub mod cover_calibrator;
+/// ASCOM Dome device type.
 #[cfg(feature = "dome")]
 pub mod dome;
+/// ASCOM `FilterWheel` device type.
 #[cfg(feature = "filter_wheel")]
 pub mod filter_wheel;
+/// ASCOM Focuser device type.
 #[cfg(feature = "focuser")]
 pub mod focuser;
+/// ASCOM `ObservingConditions` device type.
 #[cfg(feature = "observing_conditions")]
 pub mod observing_conditions;
+/// ASCOM Rotator device type.
 #[cfg(feature = "rotator")]
 pub mod rotator;
+/// ASCOM `SafetyMonitor` device type.
 #[cfg(feature = "safety_monitor")]
 pub mod safety_monitor;
+/// ASCOM Switch device type.
 #[cfg(feature = "switch")]
 pub mod switch;
+/// ASCOM Telescope device type.
 #[cfg(feature = "telescope")]
 pub mod telescope;
 

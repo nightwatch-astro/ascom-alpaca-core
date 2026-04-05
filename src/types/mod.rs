@@ -1,6 +1,7 @@
 mod device_type;
 mod error;
 mod guide_direction;
+/// Parameter normalization for Alpaca query/form data.
 pub mod params;
 mod response;
 

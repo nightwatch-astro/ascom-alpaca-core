@@ -32,7 +32,7 @@ impl Default for MockObservingConditions {
 }
 
 impl MockObservingConditions {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             connected: Mutex::new(false),
             average_period: Mutex::new(0.0),

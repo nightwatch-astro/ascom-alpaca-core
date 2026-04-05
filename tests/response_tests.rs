@@ -3,13 +3,15 @@ use ascom_alpaca_core::types::{AlpacaError, AlpacaResponse, MethodResponse};
 #[test]
 fn alpaca_response_ok_bool() {
     let resp = AlpacaResponse::ok(true).with_transaction(1, 42);
-    let json = serde_json::to_value(&resp).unwrap();
-
-    assert_eq!(json["Value"], true);
-    assert_eq!(json["ErrorNumber"], 0);
-    assert_eq!(json["ErrorMessage"], "");
-    assert_eq!(json["ClientTransactionID"], 1);
-    assert_eq!(json["ServerTransactionID"], 42);
+    insta::assert_json_snapshot!(resp, @r#"
+    {
+      "Value": true,
+      "ErrorNumber": 0,
+      "ErrorMessage": "",
+      "ClientTransactionID": 1,
+      "ServerTransactionID": 42
+    }
+    "#);
 }
 
 #[test]
@@ -29,39 +31,58 @@ fn alpaca_response_ok_f64() {
 #[test]
 fn alpaca_response_ok_string() {
     let resp = AlpacaResponse::ok("hello".to_string());
-    let json = serde_json::to_value(&resp).unwrap();
-    assert_eq!(json["Value"], "hello");
+    insta::assert_json_snapshot!(resp, @r#"
+    {
+      "Value": "hello",
+      "ErrorNumber": 0,
+      "ErrorMessage": "",
+      "ClientTransactionID": 0,
+      "ServerTransactionID": 0
+    }
+    "#);
 }
 
 #[test]
 fn alpaca_response_ok_vec_string() {
     let resp = AlpacaResponse::ok(vec!["a".to_string(), "b".to_string()]);
-    let json = serde_json::to_value(&resp).unwrap();
-    assert_eq!(json["Value"], serde_json::json!(["a", "b"]));
+    insta::assert_json_snapshot!(resp, @r#"
+    {
+      "Value": [
+        "a",
+        "b"
+      ],
+      "ErrorNumber": 0,
+      "ErrorMessage": "",
+      "ClientTransactionID": 0,
+      "ServerTransactionID": 0
+    }
+    "#);
 }
 
 #[test]
 fn alpaca_response_error_has_no_value() {
     let resp = AlpacaResponse::<bool>::from_error(AlpacaError::NotConnected("offline".into()));
-    let json = serde_json::to_value(&resp).unwrap();
-
-    assert!(
-        json.get("Value").is_none(),
-        "Error response should not have Value"
-    );
-    assert_eq!(json["ErrorNumber"], 0x407);
-    assert_eq!(json["ErrorMessage"], "offline");
+    insta::assert_json_snapshot!(resp, @r#"
+    {
+      "ErrorNumber": 1031,
+      "ErrorMessage": "offline",
+      "ClientTransactionID": 0,
+      "ServerTransactionID": 0
+    }
+    "#);
 }
 
 #[test]
 fn alpaca_response_not_implemented() {
     let resp = AlpacaResponse::<bool>::not_implemented("pulse_guide");
-    let json = serde_json::to_value(&resp).unwrap();
-    assert_eq!(json["ErrorNumber"], 0x400);
-    assert!(json["ErrorMessage"]
-        .as_str()
-        .unwrap()
-        .contains("pulse_guide"));
+    insta::assert_json_snapshot!(resp, @r#"
+    {
+      "ErrorNumber": 1024,
+      "ErrorMessage": "pulse_guide is not implemented",
+      "ClientTransactionID": 0,
+      "ServerTransactionID": 0
+    }
+    "#);
 }
 
 #[test]
@@ -87,25 +108,27 @@ fn alpaca_response_roundtrip_vec_i32() {
 #[test]
 fn method_response_ok() {
     let resp = MethodResponse::ok().with_transaction(1, 42);
-    let json = serde_json::to_value(&resp).unwrap();
-
-    assert!(
-        json.get("Value").is_none(),
-        "MethodResponse should not have Value"
-    );
-    assert_eq!(json["ErrorNumber"], 0);
-    assert_eq!(json["ErrorMessage"], "");
-    assert_eq!(json["ClientTransactionID"], 1);
-    assert_eq!(json["ServerTransactionID"], 42);
+    insta::assert_json_snapshot!(resp, @r#"
+    {
+      "ErrorNumber": 0,
+      "ErrorMessage": "",
+      "ClientTransactionID": 1,
+      "ServerTransactionID": 42
+    }
+    "#);
 }
 
 #[test]
 fn method_response_error() {
     let resp = MethodResponse::from_error(AlpacaError::InvalidWhileParked("can't slew".into()));
-    let json = serde_json::to_value(&resp).unwrap();
-
-    assert_eq!(json["ErrorNumber"], 0x408);
-    assert_eq!(json["ErrorMessage"], "can't slew");
+    insta::assert_json_snapshot!(resp, @r#"
+    {
+      "ErrorNumber": 1032,
+      "ErrorMessage": "can't slew",
+      "ClientTransactionID": 0,
+      "ServerTransactionID": 0
+    }
+    "#);
 }
 
 #[test]

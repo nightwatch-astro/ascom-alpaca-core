@@ -1,19 +1,17 @@
-default_install_hook_types: [commit-msg, pre-commit, pre-push]
-fail_fast: true
+exclude: '^(\.claude/|\.specify/|specs/)'
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
       - id: check-added-large-files
-        args: [--maxkb=2000]
+        args: ['--maxkb=500']
       - id: check-json
-      - id: check-yaml
       - id: check-toml
+      - id: check-yaml
       - id: detect-private-key
       - id: end-of-file-fixer
       - id: trailing-whitespace
-      - id: check-merge-conflict
 
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.28.0
@@ -24,7 +22,7 @@ repos:
     rev: v1.34.0
     hooks:
       - id: typos
-        args: [--force-exclude]
+        args: ['--force-exclude']
 
   # Rust formatting & linting
   - repo: local
@@ -49,3 +47,18 @@ repos:
         stages: [pre-push]
         types: [rust]
         pass_filenames: false
+
+  - repo: https://github.com/alexander-bauer/cocogitto-pre-commit
+    rev: v0.1.0
+    hooks:
+      - id: cocogitto-verify
+        stages: [commit-msg]
+
+  - repo: local
+    hooks:
+      - id: no-ai-attribution
+        name: no AI attribution
+        entry: "bash -c 'if grep -iE \"co-authored-by.*(claude|anthropic|noreply@anthropic)|generated.by.*(claude|ai)|AI.assisted|AI.generated\" \"$1\" 2>/dev/null; then echo \"AI attribution found. Remove it.\"; exit 1; fi'"
+        language: system
+        stages: [commit-msg]
+        always_run: true

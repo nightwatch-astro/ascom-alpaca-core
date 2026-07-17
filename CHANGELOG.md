@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0](https://github.com/nightwatch-astro/ascom-alpaca-core/compare/v0.2.3...v0.3.0) - 2026-07-17
+
+### Bug Fixes
+
+- *(ci)* treat conformu issues as warnings, not errors ([#107](https://github.com/nightwatch-astro/ascom-alpaca-core/pull/107))
+
+### Features
+
+- relicense to MPL-2.0 and require CLA ([#117](https://github.com/nightwatch-astro/ascom-alpaca-core/pull/117))
+
+### Miscellaneous
+
+- exclude shell and tooling scaffolding from language stats
+- add pre-commit config ([#115](https://github.com/nightwatch-astro/ascom-alpaca-core/pull/115))
+- pin GitHub Actions to commit SHAs
+- pin GitHub Actions to commit SHAs
+- pin GitHub Actions to commit SHAs
+- add CODEOWNERS for CI security
+- add pre-commit config with Rust hooks ([#110](https://github.com/nightwatch-astro/ascom-alpaca-core/pull/110))
+
+### Performance
+
+- *(ci)* use nextest and clippy --all-targets ([#114](https://github.com/nightwatch-astro/ascom-alpaca-core/pull/114))
+- *(ci)* replace rust-cache with sccache ([#113](https://github.com/nightwatch-astro/ascom-alpaca-core/pull/113))
+
+### Refactoring
+
+- migrate AlpacaError to thiserror derive ([#109](https://github.com/nightwatch-astro/ascom-alpaca-core/pull/109))
+
+### Testing
+
+- add insta for snapshot testing of Alpaca protocol responses ([#111](https://github.com/nightwatch-astro/ascom-alpaca-core/pull/111))
+
+### Ci
+
+- restore newlines in release workflow so it parses again ([#118](https://github.com/nightwatch-astro/ascom-alpaca-core/pull/118))
+- bump shared release workflow to App-token version ([#116](https://github.com/nightwatch-astro/ascom-alpaca-core/pull/116))
+
 ## [0.2.3](https://github.com/nightwatch-astro/ascom-alpaca-core/compare/v0.2.2...v0.2.3) - 2026-03-29
 
 ### Bug Fixes

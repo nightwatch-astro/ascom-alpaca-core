@@ -1,1 +1,15 @@
-name: Release  on:   push:     branches: [main]  permissions:   contents: write   pull-requests: write   id-token: write  jobs:   release:     uses: nightwatch-astro/.github/.github/workflows/rust-release.yml@8bc43e99bec3baeafa6a40d458d0cb0931039a1f # main     secrets: inherit
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  release:
+    uses: nightwatch-astro/.github/.github/workflows/rust-release.yml@8bc43e99bec3baeafa6a40d458d0cb0931039a1f # main
+    secrets: inherit

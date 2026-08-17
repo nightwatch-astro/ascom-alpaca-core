@@ -297,7 +297,7 @@ fn respond_val<T: serde::Serialize>(result: Result<T, AlpacaError>, ctx: u32, st
         }
         Err(e) => {
             let resp =
-                AlpacaResponse::<serde_json::Value>::from_error(&e).with_transaction(ctx, stx);
+                AlpacaResponse::<serde_json::Value>::from_error(e).with_transaction(ctx, stx);
             serde_json::to_string(&resp).unwrap()
         }
     }
@@ -306,17 +306,17 @@ fn respond_val<T: serde::Serialize>(result: Result<T, AlpacaError>, ctx: u32, st
 fn respond_void(result: Result<(), AlpacaError>, ctx: u32, stx: u32) -> String {
     match result {
         Ok(()) => serde_json::to_string(&MethodResponse::ok().with_transaction(ctx, stx)).unwrap(),
-        Err(e) => serde_json::to_string(&MethodResponse::from_error(&e).with_transaction(ctx, stx))
+        Err(e) => serde_json::to_string(&MethodResponse::from_error(e).with_transaction(ctx, stx))
             .unwrap(),
     }
 }
 
-/// Extracts a parameter as i32. Returns 0 if missing or unparseable.
+/// Extracts a parameter as i32. Returns 0 if missing or unparsable.
 fn param_i32(params: &HashMap<String, String>, key: &str) -> i32 {
     params.get(key).and_then(|v| v.parse().ok()).unwrap_or(0)
 }
 
-/// Extracts a parameter as f64. Returns 0.0 if missing or unparseable.
+/// Extracts a parameter as f64. Returns 0.0 if missing or unparsable.
 fn param_f64(params: &HashMap<String, String>, key: &str) -> f64 {
     params.get(key).and_then(|v| v.parse().ok()).unwrap_or(0.0)
 }

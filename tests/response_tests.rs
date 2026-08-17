@@ -61,7 +61,7 @@ fn alpaca_response_ok_vec_string() {
 
 #[test]
 fn alpaca_response_error_has_no_value() {
-    let resp = AlpacaResponse::<bool>::from_error(&AlpacaError::NotConnected("offline".into()));
+    let resp = AlpacaResponse::<bool>::from_error(AlpacaError::NotConnected("offline".into()));
     insta::assert_json_snapshot!(resp, @r#"
     {
       "ErrorNumber": 1031,
@@ -120,7 +120,7 @@ fn method_response_ok() {
 
 #[test]
 fn method_response_error() {
-    let resp = MethodResponse::from_error(&AlpacaError::InvalidWhileParked("can't slew".into()));
+    let resp = MethodResponse::from_error(AlpacaError::InvalidWhileParked("can't slew".into()));
     insta::assert_json_snapshot!(resp, @r#"
     {
       "ErrorNumber": 1032,

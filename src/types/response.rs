@@ -37,7 +37,9 @@ impl<T: Serialize> AlpacaResponse<T> {
     }
 
     /// Creates an error response from an `AlpacaError`.
-    pub fn from_error(error: &AlpacaError) -> Self {
+    // By value for API stability: taking a reference is a breaking change.
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn from_error(error: AlpacaError) -> Self {
         Self {
             value: None,
             error_number: error.error_code(),
@@ -49,7 +51,7 @@ impl<T: Serialize> AlpacaResponse<T> {
 
     /// Creates a "not implemented" error response.
     pub fn not_implemented(method: &str) -> Self {
-        Self::from_error(&AlpacaError::NotImplemented(format!(
+        Self::from_error(AlpacaError::NotImplemented(format!(
             "{method} is not implemented"
         )))
     }
@@ -92,7 +94,9 @@ impl MethodResponse {
     }
 
     /// Creates an error method response from an `AlpacaError`.
-    pub fn from_error(error: &AlpacaError) -> Self {
+    // By value for API stability: taking a reference is a breaking change.
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn from_error(error: AlpacaError) -> Self {
         Self {
             error_number: error.error_code(),
             error_message: error.error_message().to_string(),

@@ -579,14 +579,15 @@ impl Telescope for MockTelescope {
 
         // RA guide rate operates in sidereal time; Dec guide rate operates in solar time.
         // ConformU expects RA corrections to account for the solar-to-sidereal time ratio.
+        let dec_delta = guide_dec * solar_secs;
         match direction {
             GuideDirection::North => {
-                *self.dec.lock().unwrap() += guide_dec * solar_secs;
-                *self.rate_base_dec.lock().unwrap() += guide_dec * solar_secs;
+                *self.dec.lock().unwrap() += dec_delta;
+                *self.rate_base_dec.lock().unwrap() += dec_delta;
             }
             GuideDirection::South => {
-                *self.dec.lock().unwrap() -= guide_dec * solar_secs;
-                *self.rate_base_dec.lock().unwrap() -= guide_dec * solar_secs;
+                *self.dec.lock().unwrap() -= dec_delta;
+                *self.rate_base_dec.lock().unwrap() -= dec_delta;
             }
             GuideDirection::East => {
                 // RA is in hours, guide_rate is degrees/sidereal sec: degrees→hours (÷15)

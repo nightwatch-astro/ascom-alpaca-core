@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::hash::BuildHasher;
 
 use serde::Deserialize;
 
@@ -19,9 +18,9 @@ pub struct CommonParams {
 /// The ASCOM Alpaca specification requires that parameter names are treated
 /// case-insensitively. This function normalizes a parameter map so that
 /// downstream deserialization can use lowercase field names consistently.
-pub fn normalize_params<S: BuildHasher>(
-    params: HashMap<String, String, S>,
-) -> HashMap<String, String> {
+// Not generic over the hasher: adding a type parameter is a breaking API change.
+#[allow(clippy::implicit_hasher)]
+pub fn normalize_params(params: HashMap<String, String>) -> HashMap<String, String> {
     params
         .into_iter()
         .map(|(k, v)| (k.to_lowercase(), v))

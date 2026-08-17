@@ -1,7 +1,7 @@
-//! ConformU test harness — serves mock ASCOM Alpaca devices over HTTP.
+//! `ConformU` test harness — serves mock ASCOM Alpaca devices over HTTP.
 //!
 //! Run: `cargo run --example conformu_harness --features conformu`
-//! Then point ConformU at http://127.0.0.1:32888
+//! Then point `ConformU` at <http://127.0.0.1:32888>
 
 use ascom_alpaca_core::conformu::dispatch::{parse_device_path, parse_query, AlpacaRequest};
 use ascom_alpaca_core::conformu::management;

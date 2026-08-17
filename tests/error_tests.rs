@@ -2,34 +2,37 @@ use ascom_alpaca_core::types::AlpacaError;
 
 #[test]
 fn error_codes_are_correct() {
-    assert_eq!(AlpacaError::NotImplemented("".into()).error_code(), 0x400);
-    assert_eq!(AlpacaError::InvalidValue("".into()).error_code(), 0x401);
-    assert_eq!(AlpacaError::ValueNotSet("".into()).error_code(), 0x402);
-    assert_eq!(AlpacaError::NotConnected("".into()).error_code(), 0x407);
     assert_eq!(
-        AlpacaError::InvalidWhileParked("".into()).error_code(),
+        AlpacaError::NotImplemented(String::new()).error_code(),
+        0x400
+    );
+    assert_eq!(AlpacaError::InvalidValue(String::new()).error_code(), 0x401);
+    assert_eq!(AlpacaError::ValueNotSet(String::new()).error_code(), 0x402);
+    assert_eq!(AlpacaError::NotConnected(String::new()).error_code(), 0x407);
+    assert_eq!(
+        AlpacaError::InvalidWhileParked(String::new()).error_code(),
         0x408
     );
     assert_eq!(
-        AlpacaError::InvalidWhileSlaved("".into()).error_code(),
+        AlpacaError::InvalidWhileSlaved(String::new()).error_code(),
         0x409
     );
     assert_eq!(
-        AlpacaError::InvalidOperationException("".into()).error_code(),
+        AlpacaError::InvalidOperationException(String::new()).error_code(),
         0x40B
     );
     assert_eq!(
-        AlpacaError::ActionNotImplemented("".into()).error_code(),
+        AlpacaError::ActionNotImplemented(String::new()).error_code(),
         0x40C
     );
     assert_eq!(
-        AlpacaError::OperationCancelled("".into()).error_code(),
+        AlpacaError::OperationCancelled(String::new()).error_code(),
         0x40E
     );
     assert_eq!(
         AlpacaError::DriverError {
             code: 0x500,
-            message: "".into()
+            message: String::new()
         }
         .error_code(),
         0x500
@@ -37,7 +40,7 @@ fn error_codes_are_correct() {
     assert_eq!(
         AlpacaError::DriverError {
             code: 0xFFF,
-            message: "".into()
+            message: String::new()
         }
         .error_code(),
         0xFFF
@@ -65,7 +68,7 @@ fn from_code_roundtrip() {
         let err = AlpacaError::from_code(code, msg.into());
         assert_eq!(
             err.error_code(),
-            code as i32,
+            i32::try_from(code).expect("code fits in i32"),
             "code mismatch for 0x{code:X}"
         );
         assert_eq!(err.error_message(), msg, "message mismatch for 0x{code:X}");

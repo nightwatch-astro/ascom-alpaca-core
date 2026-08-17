@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-/// Counts unique method paths per device type from the vendored ASCOM OpenAPI spec.
+/// Counts unique method paths per device type from the vendored ASCOM `OpenAPI` spec.
 /// Each path like `/camera/{device_number}/startexposure` counts as one method.
 /// Paths with both GET and PUT count as two methods (getter + setter).
 fn count_methods_from_yaml() -> HashMap<String, usize> {
@@ -26,6 +26,8 @@ fn count_methods_from_yaml() -> HashMap<String, usize> {
         let device_type = segments[0];
 
         // Skip generic {device_type} paths — those are common methods
+        // The literal is a spec path placeholder, not a format argument.
+        #[allow(clippy::literal_string_with_formatting_args)]
         if device_type == "{device_type}" {
             // Count common methods separately
             let method_count = path_value.as_mapping().map_or(0, |m| {

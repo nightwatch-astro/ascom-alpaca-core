@@ -1,3 +1,15 @@
+#![warn(missing_docs)]
+#![warn(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic_in_result_fn,
+    clippy::unwrap_in_result,
+    clippy::todo,
+    clippy::unimplemented,
+    clippy::dbg_macro,
+    clippy::undocumented_unsafe_blocks,
+    clippy::missing_assert_message
+)]
 //! Framework-agnostic ASCOM Alpaca protocol types and traits for Rust.
 //!
 //!

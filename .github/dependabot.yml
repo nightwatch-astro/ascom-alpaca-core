@@ -1,31 +1,25 @@
 version: 2
 updates:
-  - package-ecosystem: "cargo"
-    directory: "/"
+  - package-ecosystem: cargo
+    directory: /
     schedule:
-      interval: "weekly"
+      interval: weekly
     labels:
-      - "dependencies"
+      - dependencies
     groups:
-      rust-dependencies:
-        patterns:
-          - "*"
+      minor-and-patch:
         update-types:
-          - "major"
-          - "minor"
-          - "patch"
+          - minor
+          - patch
 
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: github-actions
+    directory: /
     schedule:
-      interval: "weekly"
+      interval: weekly
     labels:
-      - "dependencies"
+      - dependencies
     groups:
-      github-actions:
-        patterns:
-          - "*"
+      minor-and-patch:
         update-types:
-          - "major"
-          - "minor"
-          - "patch"
+          - minor
+          - patch

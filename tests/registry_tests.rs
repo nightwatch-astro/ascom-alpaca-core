@@ -12,10 +12,10 @@ struct TestSafetyMonitor {
 }
 
 impl Device for TestSafetyMonitor {
-    fn static_name(&self) -> &str {
+    fn static_name(&self) -> &'static str {
         self.name
     }
-    fn unique_id(&self) -> &str {
+    fn unique_id(&self) -> &'static str {
         self.id
     }
     fn device_type(&self) -> DeviceType {
@@ -32,10 +32,10 @@ impl SafetyMonitor for TestSafetyMonitor {
 struct TestSwitch;
 
 impl Device for TestSwitch {
-    fn static_name(&self) -> &str {
+    fn static_name(&self) -> &'static str {
         "Test Switch"
     }
-    fn unique_id(&self) -> &str {
+    fn unique_id(&self) -> &'static str {
         "test-sw-001"
     }
     fn device_type(&self) -> DeviceType {
@@ -65,8 +65,8 @@ fn register_and_lookup() {
     let found_sm = registry.get_safety_monitor(0).unwrap();
     assert!(found_sm.is_safe().unwrap());
 
-    let found_sw = registry.get_switch(0).unwrap();
-    assert_eq!(found_sw.max_switch().unwrap(), 2);
+    let found_switch = registry.get_switch(0).unwrap();
+    assert_eq!(found_switch.max_switch().unwrap(), 2);
 }
 
 #[test]
@@ -99,8 +99,8 @@ fn device_numbers_per_type() {
     assert!(found.is_safe().unwrap());
 
     // Switch is device 0
-    let found_sw = registry.get_switch(0).unwrap();
-    assert_eq!(found_sw.max_switch().unwrap(), 2);
+    let found_switch = registry.get_switch(0).unwrap();
+    assert_eq!(found_switch.max_switch().unwrap(), 2);
 }
 
 #[test]
@@ -178,7 +178,7 @@ fn transaction_counter_thread_safe() {
         .into_iter()
         .flat_map(|h| h.join().unwrap())
         .collect();
-    all_ids.sort();
+    all_ids.sort_unstable();
     all_ids.dedup();
 
     assert_eq!(all_ids.len(), 1000, "All IDs should be unique");

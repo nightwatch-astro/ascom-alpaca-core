@@ -13,3 +13,8 @@ too-many-arguments-threshold = 8
 
 # The crate does not use MSRV-gated suggestions — stabilized features only.
 msrv = "1.75"
+
+# Restriction lints (unwrap_used, expect_used) target library code. Test
+# assertions panic on failure by design.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true

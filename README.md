@@ -3,7 +3,7 @@
 [![Crates.io](https://img.shields.io/crates/v/ascom-alpaca-core.svg)](https://crates.io/crates/ascom-alpaca-core)
 [![Documentation](https://docs.rs/ascom-alpaca-core/badge.svg)](https://docs.rs/ascom-alpaca-core)
 [![CI](https://github.com/nightwatch-astro/ascom-alpaca-core/actions/workflows/ci.yml/badge.svg)](https://github.com/nightwatch-astro/ascom-alpaca-core/actions)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](#license)
+[![License](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](#license)
 
 Framework-agnostic ASCOM Alpaca protocol types and traits for Rust.
 
@@ -546,6 +546,8 @@ Rust 1.75 or later.
 
 ## License
 
-Licensed under the Apache License, Version 2.0 ([LICENSE](LICENSE) or <http://www.apache.org/licenses/LICENSE-2.0>).
+[![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 
-Unless required by applicable law or agreed to in writing, software distributed under this license is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND.
+This project is licensed under the Mozilla Public License 2.0 — see [LICENSE](./LICENSE) for details.
+
+You can use this library in closed-source projects. If you modify any of the source files in this library, the modified files must be made available under the MPL-2.0 when distributed.

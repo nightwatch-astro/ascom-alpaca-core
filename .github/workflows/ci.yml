@@ -231,20 +231,25 @@ jobs:
         id: conformu-cache
         uses: actions/cache@v5
         with:
-          path: conformu
-          key: conformu-v${{ env.CONFORMU_VERSION }}-linux-x64
+          # The whole extracted tree, not just the binary: the tarball ships 418
+          # runtime files including libsofa.so, which ConformU dlopens for
+          # telescope coordinate transforms. Caching the binary alone made every
+          # cache hit skip the download and fail with DllNotFoundException.
+          path: conformu-dist
+          key: conformu-v${{ env.CONFORMU_VERSION }}-linux-x64-v2
 
       - name: Download ConformU
         if: steps.conformu-cache.outputs.cache-hit != 'true'
         run: |
+          mkdir -p conformu-dist
           curl -sL "https://github.com/ASCOMInitiative/ConformU/releases/download/v${CONFORMU_VERSION}/conformu.linux-x64.tar.xz" \
-            -o conformu.tar.xz
-          tar xJf conformu.tar.xz
-          chmod +x conformu
-          rm conformu.tar.xz
+            | tar xJf - -C conformu-dist
+          chmod +x conformu-dist/conformu
 
       - name: Add ConformU to PATH
-        run: echo "$PWD" >> "$GITHUB_PATH"
+        run: |
+          echo "$PWD/conformu-dist" >> "$GITHUB_PATH"
+          echo "LD_LIBRARY_PATH=$PWD/conformu-dist${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" >> "$GITHUB_ENV"
 
       - name: Build and start test harness
         run: |

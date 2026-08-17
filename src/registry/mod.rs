@@ -17,7 +17,8 @@ pub struct DeviceRegistry {
 }
 
 impl DeviceRegistry {
-    pub fn new() -> Self {
+    /// Creates an empty device registry.
+    pub const fn new() -> Self {
         Self {
             devices: Vec::new(),
         }
@@ -87,6 +88,7 @@ impl DeviceRegistry {
 macro_rules! typed_getter {
     ($fn_name:ident, $feature:literal, $device_type:expr, $variant:ident, $trait_path:path) => {
         #[cfg(feature = $feature)]
+        #[doc = concat!("Returns a reference to the `", stringify!($variant), "` device at the given number.")]
         pub fn $fn_name(&self, num: u32) -> Result<&dyn $trait_path, RegistryError> {
             let idx =
                 self.device_number_for($device_type, num)

@@ -23,7 +23,7 @@ fn api_versions_response() {
         server_name: "Test".into(),
         manufacturer: "Test".into(),
         manufacturer_version: "1.0".into(),
-        location: "".into(),
+        location: String::new(),
     });
     let versions = info.api_versions();
     let json = serde_json::to_value(&versions).unwrap();

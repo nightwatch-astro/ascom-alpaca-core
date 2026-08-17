@@ -1,7 +1,7 @@
 use crate::device::Device;
 use crate::types::{AlpacaError, AlpacaResult};
 
-/// ASCOM SafetyMonitor device trait.
+/// ASCOM `SafetyMonitor` device trait.
 ///
 /// A generic trigger for unsafe conditions. Not limited to weather — any
 /// condition that should halt imaging operations: wind, rain, cloud cover,

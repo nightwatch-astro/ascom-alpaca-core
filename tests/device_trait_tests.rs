@@ -8,10 +8,10 @@ use ascom_alpaca_core::types::{AlpacaError, DeviceType};
 struct MockSafetyMonitor;
 
 impl Device for MockSafetyMonitor {
-    fn static_name(&self) -> &str {
+    fn static_name(&self) -> &'static str {
         "Test Safety Monitor"
     }
-    fn unique_id(&self) -> &str {
+    fn unique_id(&self) -> &'static str {
         "test-sm-001"
     }
     fn device_type(&self) -> DeviceType {
@@ -28,10 +28,10 @@ impl SafetyMonitor for MockSafetyMonitor {
 struct MockSwitch;
 
 impl Device for MockSwitch {
-    fn static_name(&self) -> &str {
+    fn static_name(&self) -> &'static str {
         "Test Switch"
     }
-    fn unique_id(&self) -> &str {
+    fn unique_id(&self) -> &'static str {
         "test-sw-001"
     }
     fn device_type(&self) -> DeviceType {

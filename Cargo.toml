@@ -53,3 +53,21 @@ conformu = ["dep:tiny_http", "all-devices"]
 [[example]]
 name = "conformu_harness"
 required-features = ["conformu"]
+
+[lints.clippy]
+# Lint groups (set lower priority so individual overrides win)
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+
+# Restriction lints and missing_docs are declared in src/lib.rs instead: a
+# [lints] table applies to every target in the package, including the
+# integration-test crates, where panicking assertions and undocumented test
+# crates are correct.
+
+# Pedantic opt-outs (inappropriate for this crate)
+module_name_repetitions = "allow"       # DeviceType in types module is fine
+must_use_candidate = "allow"            # Too noisy for builder/response APIs
+missing_errors_doc = "allow"            # Trait defaults all return NotImplemented
+missing_panics_doc = "allow"            # Covered by unwrap_used lint
+return_self_not_must_use = "allow"      # Builder pattern with_transaction()

@@ -4,11 +4,13 @@ use crate::types::DeviceType;
 
 /// Server metadata for the Alpaca management API.
 pub struct ServerInfo {
+    /// The server description metadata.
     pub description: ServerDescription,
 }
 
 impl ServerInfo {
-    pub fn new(description: ServerDescription) -> Self {
+    /// Creates a new `ServerInfo` with the given description.
+    pub const fn new(description: ServerDescription) -> Self {
         Self { description }
     }
 
@@ -22,9 +24,13 @@ impl ServerInfo {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct ServerDescription {
+    /// Display name of the server.
     pub server_name: String,
+    /// Name of the server manufacturer.
     pub manufacturer: String,
+    /// Version string of the server software.
     pub manufacturer_version: String,
+    /// Physical location of the server.
     pub location: String,
 }
 
@@ -32,6 +38,7 @@ pub struct ServerDescription {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct ApiVersionsResponse {
+    /// The list of supported API version numbers.
     pub value: Vec<u32>,
 }
 
@@ -39,9 +46,13 @@ pub struct ApiVersionsResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct ConfiguredDevice {
+    /// Display name of the device.
     pub device_name: String,
+    /// The ASCOM device type.
     pub device_type: DeviceType,
+    /// The zero-based device number within its type.
     pub device_number: u32,
+    /// A unique identifier for this device instance.
     #[serde(rename = "UniqueID")]
     pub unique_id: String,
 }

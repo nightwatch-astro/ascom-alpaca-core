@@ -8,7 +8,8 @@ pub struct TransactionCounter {
 }
 
 impl TransactionCounter {
-    pub fn new() -> Self {
+    /// Creates a new counter starting at 1.
+    pub const fn new() -> Self {
         Self {
             next: AtomicU32::new(1),
         }

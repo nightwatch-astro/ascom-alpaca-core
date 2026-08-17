@@ -1,3 +1,7 @@
+//! Dispatch layer for the `ConformU` test harness.
+//!
+//! Maps incoming Alpaca HTTP requests to device trait method calls.
+
 use std::collections::HashMap;
 
 use serde::Serialize;
@@ -36,7 +40,7 @@ pub struct AlpacaRequest {
 }
 
 /// Parse an Alpaca device API URL path.
-/// Expected format: /api/v1/{device_type}/{device_number}/{method}
+/// Expected format: /`api/v1/{device_type}/{device_number}/{method`}
 pub fn parse_device_path(path: &str) -> Option<(DeviceType, u32, String)> {
     let path = path.trim_start_matches('/');
     let parts: Vec<&str> = path.split('/').collect();
@@ -99,21 +103,18 @@ pub fn dispatch_request(
     let ctx = client_tx(&params);
 
     // Look up the device
-    let device = match registry.get_device(req.device_type, req.device_number) {
-        Ok(d) => d,
-        Err(_) => {
-            return (
-                serde_json::to_string(&serde_json::json!({
-                    "Value": null,
-                    "ErrorNumber": 0,
-                    "ErrorMessage": format!("Device not found: {} {}", req.device_type, req.device_number),
-                    "ClientTransactionID": ctx,
-                    "ServerTransactionID": server_tx,
-                }))
-                .unwrap(),
-                400,
-            );
-        }
+    let Ok(device) = registry.get_device(req.device_type, req.device_number) else {
+        return (
+            serde_json::to_string(&serde_json::json!({
+                "Value": null,
+                "ErrorNumber": 0,
+                "ErrorMessage": format!("Device not found: {} {}", req.device_type, req.device_number),
+                "ClientTransactionID": ctx,
+                "ServerTransactionID": server_tx,
+            }))
+            .unwrap(),
+            400,
+        );
     };
 
     // Dispatch common Device methods first
@@ -129,7 +130,7 @@ pub fn dispatch_request(
 fn dispatch_common(
     device: &dyn Device,
     method: &str,
-    _params: &HashMap<String, String>,
+    params: &HashMap<String, String>,
     is_put: bool,
     ctx: u32,
     stx: u32,
@@ -137,10 +138,9 @@ fn dispatch_common(
     match (method, is_put) {
         ("connected", false) => Some(respond_val(device.connected(), ctx, stx)),
         ("connected", true) => {
-            let val = _params
+            let val = params
                 .get("connected")
-                .map(|v| v == "true" || v == "True")
-                .unwrap_or(false);
+                .is_some_and(|v| v == "true" || v == "True");
             Some(respond_void(device.set_connected(val), ctx, stx))
         }
         ("connecting", false) => Some(respond_val(device.connecting(), ctx, stx)),
@@ -153,8 +153,8 @@ fn dispatch_common(
         ("name", false) => Some(respond_val(device.name(), ctx, stx)),
         ("supportedactions", false) => Some(respond_val(device.supported_actions(), ctx, stx)),
         ("action", true) => {
-            let action_name = _params.get("action").cloned().unwrap_or_default();
-            let action_params = _params.get("parameters").cloned().unwrap_or_default();
+            let action_name = params.get("action").cloned().unwrap_or_default();
+            let action_params = params.get("parameters").cloned().unwrap_or_default();
             Some(respond_val(
                 device.action(&action_name, &action_params),
                 ctx,
@@ -162,27 +162,24 @@ fn dispatch_common(
             ))
         }
         ("commandblind", true) => {
-            let cmd = _params.get("command").cloned().unwrap_or_default();
-            let raw = _params
+            let cmd = params.get("command").cloned().unwrap_or_default();
+            let raw = params
                 .get("raw")
-                .map(|v| v == "true" || v == "True")
-                .unwrap_or(false);
+                .is_some_and(|v| v == "true" || v == "True");
             Some(respond_void(device.command_blind(&cmd, raw), ctx, stx))
         }
         ("commandbool", true) => {
-            let cmd = _params.get("command").cloned().unwrap_or_default();
-            let raw = _params
+            let cmd = params.get("command").cloned().unwrap_or_default();
+            let raw = params
                 .get("raw")
-                .map(|v| v == "true" || v == "True")
-                .unwrap_or(false);
+                .is_some_and(|v| v == "true" || v == "True");
             Some(respond_val(device.command_bool(&cmd, raw), ctx, stx))
         }
         ("commandstring", true) => {
-            let cmd = _params.get("command").cloned().unwrap_or_default();
-            let raw = _params
+            let cmd = params.get("command").cloned().unwrap_or_default();
+            let raw = params
                 .get("raw")
-                .map(|v| v == "true" || v == "True")
-                .unwrap_or(false);
+                .is_some_and(|v| v == "true" || v == "True");
             Some(respond_val(device.command_string(&cmd, raw), ctx, stx))
         }
         ("devicestate", false) => Some(respond_val(device.device_state(), ctx, stx)),
@@ -314,22 +311,19 @@ fn respond_void(result: Result<(), AlpacaError>, ctx: u32, stx: u32) -> String {
     }
 }
 
-/// Extracts a parameter as i32. Returns 0 if missing or unparseable.
+/// Extracts a parameter as i32. Returns 0 if missing or unparsable.
 fn param_i32(params: &HashMap<String, String>, key: &str) -> i32 {
     params.get(key).and_then(|v| v.parse().ok()).unwrap_or(0)
 }
 
-/// Extracts a parameter as f64. Returns 0.0 if missing or unparseable.
+/// Extracts a parameter as f64. Returns 0.0 if missing or unparsable.
 fn param_f64(params: &HashMap<String, String>, key: &str) -> f64 {
     params.get(key).and_then(|v| v.parse().ok()).unwrap_or(0.0)
 }
 
 /// Extracts a parameter as bool. Accepts "true"/"True", returns false otherwise.
 fn param_bool(params: &HashMap<String, String>, key: &str) -> bool {
-    params
-        .get(key)
-        .map(|v| v == "true" || v == "True")
-        .unwrap_or(false)
+    params.get(key).is_some_and(|v| v == "true" || v == "True")
 }
 
 fn not_implemented_response(method: &str, ctx: u32, stx: u32) -> String {
@@ -353,9 +347,8 @@ fn dispatch_safety_monitor(
     ctx: u32,
     stx: u32,
 ) -> String {
-    let dev = match registry.get_safety_monitor(num) {
-        Ok(d) => d,
-        Err(_) => return not_implemented_response(method, ctx, stx),
+    let Ok(dev) = registry.get_safety_monitor(num) else {
+        return not_implemented_response(method, ctx, stx);
     };
     match method {
         "issafe" => respond_val(dev.is_safe(), ctx, stx),
@@ -372,9 +365,8 @@ fn dispatch_camera(
     ctx: u32,
     stx: u32,
 ) -> String {
-    let dev = match registry.get_camera(num) {
-        Ok(d) => d,
-        Err(_) => return not_implemented_response(method, ctx, stx),
+    let Ok(dev) = registry.get_camera(num) else {
+        return not_implemented_response(method, ctx, stx);
     };
     match (method, is_put) {
         ("camerastate", false) => respond_val(dev.camera_state(), ctx, stx),
@@ -520,13 +512,12 @@ fn dispatch_switch(
     ctx: u32,
     stx: u32,
 ) -> String {
-    let dev = match registry.get_switch(num) {
-        Ok(d) => d,
-        Err(_) => return not_implemented_response(method, ctx, stx),
+    let Ok(dev) = registry.get_switch(num) else {
+        return not_implemented_response(method, ctx, stx);
     };
     // Switch ID must be parsed as i32 first — negative IDs are invalid
     let raw_id = param_i32(params, "id");
-    if raw_id < 0 {
+    let Ok(id) = u32::try_from(raw_id) else {
         return respond_val::<bool>(
             Err(AlpacaError::InvalidValue(format!(
                 "Switch ID {raw_id} is negative"
@@ -534,8 +525,7 @@ fn dispatch_switch(
             ctx,
             stx,
         );
-    }
-    let id = raw_id as u32;
+    };
     match (method, is_put) {
         ("maxswitch", false) => respond_val(dev.max_switch(), ctx, stx),
         ("canwrite", false) => respond_val(dev.can_write(id), ctx, stx),
@@ -582,9 +572,8 @@ fn dispatch_cover_calibrator(
     ctx: u32,
     stx: u32,
 ) -> String {
-    let dev = match registry.get_cover_calibrator(num) {
-        Ok(d) => d,
-        Err(_) => return not_implemented_response(method, ctx, stx),
+    let Ok(dev) = registry.get_cover_calibrator(num) else {
+        return not_implemented_response(method, ctx, stx);
     };
     match (method, is_put) {
         ("brightness", false) => respond_val(dev.brightness(), ctx, stx),
@@ -613,9 +602,8 @@ fn dispatch_dome(
     ctx: u32,
     stx: u32,
 ) -> String {
-    let dev = match registry.get_dome(num) {
-        Ok(d) => d,
-        Err(_) => return not_implemented_response(method, ctx, stx),
+    let Ok(dev) = registry.get_dome(num) else {
+        return not_implemented_response(method, ctx, stx);
     };
     match (method, is_put) {
         ("altitude", false) => respond_val(dev.altitude(), ctx, stx),
@@ -664,9 +652,8 @@ fn dispatch_filter_wheel(
     ctx: u32,
     stx: u32,
 ) -> String {
-    let dev = match registry.get_filter_wheel(num) {
-        Ok(d) => d,
-        Err(_) => return not_implemented_response(method, ctx, stx),
+    let Ok(dev) = registry.get_filter_wheel(num) else {
+        return not_implemented_response(method, ctx, stx);
     };
     match (method, is_put) {
         ("position", false) => respond_val(dev.position(), ctx, stx),
@@ -688,9 +675,8 @@ fn dispatch_focuser(
     ctx: u32,
     stx: u32,
 ) -> String {
-    let dev = match registry.get_focuser(num) {
-        Ok(d) => d,
-        Err(_) => return not_implemented_response(method, ctx, stx),
+    let Ok(dev) = registry.get_focuser(num) else {
+        return not_implemented_response(method, ctx, stx);
     };
     match (method, is_put) {
         ("absolute", false) => respond_val(dev.absolute(), ctx, stx),
@@ -720,9 +706,8 @@ fn dispatch_observing_conditions(
     ctx: u32,
     stx: u32,
 ) -> String {
-    let dev = match registry.get_observing_conditions(num) {
-        Ok(d) => d,
-        Err(_) => return not_implemented_response(method, ctx, stx),
+    let Ok(dev) = registry.get_observing_conditions(num) else {
+        return not_implemented_response(method, ctx, stx);
     };
     match (method, is_put) {
         ("cloudcover", false) => respond_val(dev.cloud_cover(), ctx, stx),
@@ -766,9 +751,8 @@ fn dispatch_rotator(
     ctx: u32,
     stx: u32,
 ) -> String {
-    let dev = match registry.get_rotator(num) {
-        Ok(d) => d,
-        Err(_) => return not_implemented_response(method, ctx, stx),
+    let Ok(dev) = registry.get_rotator(num) else {
+        return not_implemented_response(method, ctx, stx);
     };
     match (method, is_put) {
         ("canreverse", false) => respond_val(dev.can_reverse(), ctx, stx),
@@ -804,9 +788,8 @@ fn dispatch_telescope(
     use crate::telescope::{DriveRate, SideOfPier};
     use crate::types::GuideDirection;
 
-    let dev = match registry.get_telescope(num) {
-        Ok(d) => d,
-        Err(_) => return not_implemented_response(method, ctx, stx),
+    let Ok(dev) = registry.get_telescope(num) else {
+        return not_implemented_response(method, ctx, stx);
     };
     match (method, is_put) {
         // --- Position & coordinates ---

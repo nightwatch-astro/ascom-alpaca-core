@@ -17,7 +17,7 @@ impl Default for MockCoverCalibrator {
 }
 
 impl MockCoverCalibrator {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             connected: Mutex::new(false),
             cover_state: Mutex::new(CoverState::Closed),

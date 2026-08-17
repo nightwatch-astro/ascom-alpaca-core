@@ -19,7 +19,7 @@ impl Default for MockFocuser {
 }
 
 impl MockFocuser {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             connected: Mutex::new(false),
             position: Mutex::new(25000),

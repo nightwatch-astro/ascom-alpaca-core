@@ -1,7 +1,7 @@
 use crate::device::Device;
 use crate::types::{AlpacaError, AlpacaResult};
 
-/// ASCOM Focuser device trait (IFocuserV4).
+/// ASCOM Focuser device trait (`IFocuserV4`).
 ///
 /// Controls a focus motor with absolute or relative positioning and optional
 /// temperature compensation. Key properties: `position`, `max_step`, `is_moving`,

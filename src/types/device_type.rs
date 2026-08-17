@@ -7,21 +7,31 @@ use serde::{Deserialize, Serialize};
 /// Serializes to/from the lowercase URL path names used in Alpaca endpoints.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DeviceType {
+    /// Camera device.
     Camera,
+    /// Cover calibrator / flat panel device.
     CoverCalibrator,
+    /// Observatory dome.
     Dome,
+    /// Filter wheel.
     FilterWheel,
+    /// Focuser.
     Focuser,
+    /// Weather / observing conditions sensor.
     ObservingConditions,
+    /// Field rotator / de-rotator.
     Rotator,
+    /// Safety monitor.
     SafetyMonitor,
+    /// Multi-channel switch / relay.
     Switch,
+    /// Telescope mount.
     Telescope,
 }
 
 impl DeviceType {
     /// Returns the lowercase URL path name for this device type.
-    pub fn as_path(&self) -> &'static str {
+    pub const fn as_path(&self) -> &'static str {
         match self {
             Self::Camera => "camera",
             Self::CoverCalibrator => "covercalibrator",

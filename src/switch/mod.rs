@@ -1,7 +1,7 @@
 use crate::device::Device;
 use crate::types::{AlpacaError, AlpacaResult};
 
-/// ASCOM Switch device trait (ISwitchV3).
+/// ASCOM Switch device trait (`ISwitchV3`).
 ///
 /// Multi-channel device supporting boolean (on/off), multi-state (selector),
 /// and analog (continuous range) channels. All methods take a switch `id` parameter
@@ -10,7 +10,7 @@ use crate::types::{AlpacaError, AlpacaResult};
 /// Each channel has: min/max range, step size, read/write capability, and a name.
 /// Boolean channels use min=0, max=1, step=1. Analog channels use finer steps.
 ///
-/// ISwitchV3 adds optional async methods: `can_async`, `set_async`, `set_async_value`,
+/// `ISwitchV3` adds optional async methods: `can_async`, `set_async`, `set_async_value`,
 /// `cancel_async`, `state_change_complete`.
 ///
 /// # Example

@@ -1,10 +1,12 @@
 use serde::{Deserialize, Serialize};
 
-/// A single name-value pair in the DeviceState array (Platform 7+).
+/// A single name-value pair in the `DeviceState` array (Platform 7+).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct DeviceStateItem {
+    /// The state property name (e.g., `IsSafe`, `Temperature`).
     pub name: String,
+    /// The state property value.
     pub value: serde_json::Value,
 }
 
@@ -29,15 +31,19 @@ pub struct DeviceStateBuilder {
 }
 
 impl DeviceStateBuilder {
-    pub fn new() -> Self {
+    /// Creates an empty builder.
+    pub const fn new() -> Self {
         Self { items: Vec::new() }
     }
 
     /// Adds a name-value pair. Accepts any type that implements `Serialize`.
+    ///
+    /// If serialization fails (which should not happen for standard types),
+    /// the value is stored as `serde_json::Value::Null`.
     pub fn add(mut self, name: &str, value: impl Serialize) -> Self {
         self.items.push(DeviceStateItem {
             name: name.into(),
-            value: serde_json::to_value(value).unwrap(),
+            value: serde_json::to_value(value).unwrap_or_default(),
         });
         self
     }

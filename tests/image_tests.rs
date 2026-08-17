@@ -126,7 +126,7 @@ fn imagebytes_large_image() {
     let mut data = vec![vec![0i32; cols]; rows];
     for (i, row) in data.iter_mut().enumerate() {
         for (j, pixel) in row.iter_mut().enumerate() {
-            *pixel = (i * cols + j) as i32;
+            *pixel = i32::try_from(i * cols + j).expect("index fits in i32");
         }
     }
     let original = ImageData::I32_2D(data);

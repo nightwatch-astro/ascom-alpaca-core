@@ -1,17 +1,26 @@
 use serde::{Deserialize, Serialize};
 
 /// Pixel data for an image array.
+///
+/// Supports 2D (monochrome) and 3D (color) arrays in three element types:
+/// `i16`, `i32`, and `f64`.
 #[derive(Debug, Clone)]
 pub enum ImageData {
+    /// 2D monochrome image with 16-bit signed pixels.
     I16_2D(Vec<Vec<i16>>),
+    /// 2D monochrome image with 32-bit signed pixels.
     I32_2D(Vec<Vec<i32>>),
+    /// 2D monochrome image with 64-bit float pixels.
     F64_2D(Vec<Vec<f64>>),
+    /// 3D color image with 16-bit signed pixels (plane/row/col).
     I16_3D(Vec<Vec<Vec<i16>>>),
+    /// 3D color image with 32-bit signed pixels (plane/row/col).
     I32_3D(Vec<Vec<Vec<i32>>>),
+    /// 3D color image with 64-bit float pixels (plane/row/col).
     F64_3D(Vec<Vec<Vec<f64>>>),
 }
 
-/// Image array with metadata, supporting both JSON and ImageBytes encoding.
+/// Image array with metadata, supporting both JSON and `ImageBytes` encoding.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct ImageArrayResponse {
@@ -26,7 +35,7 @@ pub struct ImageArrayResponse {
 
 impl ImageData {
     /// Returns the ASCOM image element type code.
-    pub fn image_type(&self) -> i32 {
+    pub const fn image_type(&self) -> i32 {
         match self {
             Self::I16_2D(_) | Self::I16_3D(_) => 1,
             Self::I32_2D(_) | Self::I32_3D(_) => 2,
@@ -35,7 +44,7 @@ impl ImageData {
     }
 
     /// Returns the rank (2 = monochrome, 3 = color).
-    pub fn rank(&self) -> i32 {
+    pub const fn rank(&self) -> i32 {
         match self {
             Self::I16_2D(_) | Self::I32_2D(_) | Self::F64_2D(_) => 2,
             Self::I16_3D(_) | Self::I32_3D(_) | Self::F64_3D(_) => 3,
@@ -66,36 +75,44 @@ impl ImageData {
     /// Returns the dimensions of the image.
     pub fn dimensions(&self) -> (usize, usize, usize) {
         match self {
-            Self::I16_2D(data) => (data.len(), data.first().map_or(0, |r| r.len()), 0),
-            Self::I32_2D(data) => (data.len(), data.first().map_or(0, |r| r.len()), 0),
-            Self::F64_2D(data) => (data.len(), data.first().map_or(0, |r| r.len()), 0),
+            Self::I16_2D(data) => (data.len(), data.first().map_or(0, std::vec::Vec::len), 0),
+            Self::I32_2D(data) => (data.len(), data.first().map_or(0, std::vec::Vec::len), 0),
+            Self::F64_2D(data) => (data.len(), data.first().map_or(0, std::vec::Vec::len), 0),
             Self::I16_3D(data) => (
                 data.len(),
-                data.first().map_or(0, |p| p.len()),
-                data.first().and_then(|p| p.first()).map_or(0, |r| r.len()),
+                data.first().map_or(0, std::vec::Vec::len),
+                data.first()
+                    .and_then(|p| p.first())
+                    .map_or(0, std::vec::Vec::len),
             ),
             Self::I32_3D(data) => (
                 data.len(),
-                data.first().map_or(0, |p| p.len()),
-                data.first().and_then(|p| p.first()).map_or(0, |r| r.len()),
+                data.first().map_or(0, std::vec::Vec::len),
+                data.first()
+                    .and_then(|p| p.first())
+                    .map_or(0, std::vec::Vec::len),
             ),
             Self::F64_3D(data) => (
                 data.len(),
-                data.first().map_or(0, |p| p.len()),
-                data.first().and_then(|p| p.first()).map_or(0, |r| r.len()),
+                data.first().map_or(0, std::vec::Vec::len),
+                data.first()
+                    .and_then(|p| p.first())
+                    .map_or(0, std::vec::Vec::len),
             ),
         }
     }
 }
 
-/// ImageBytes binary format header constants.
+/// `ImageBytes` binary format header constants.
 pub mod imagebytes {
     /// Current metadata version.
     pub const METADATA_VERSION: i32 = 1;
 
-    /// Serializes image data to the ImageBytes binary format.
+    /// Serializes image data to the `ImageBytes` binary format.
     ///
     /// Format: metadata header + raw pixel data in little-endian byte order.
+    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+    // Image dimensions are always within i32 range per the ASCOM ImageBytes spec.
     pub fn encode(
         data: &super::ImageData,
         error_number: i32,
@@ -198,7 +215,9 @@ pub mod imagebytes {
             .ok_or_else(|| format!("ImageBytes: truncated at offset {offset}"))
     }
 
-    /// Decodes ImageBytes binary format back into ImageData.
+    /// Decodes `ImageBytes` binary format back into `ImageData`.
+    #[allow(clippy::cast_sign_loss)]
+    // ImageBytes header fields are i32 per spec but represent non-negative dimensions.
     pub fn decode(bytes: &[u8]) -> Result<super::ImageData, String> {
         if bytes.len() < 44 {
             return Err("ImageBytes header too short".into());

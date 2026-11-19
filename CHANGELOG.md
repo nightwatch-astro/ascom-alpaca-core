@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1](https://github.com/nightwatch-astro/ascom-alpaca-core/compare/v0.3.0...v0.3.1) - 2026-11-19
+
+### Miscellaneous
+
+- configure Renovate ([#123](https://github.com/nightwatch-astro/ascom-alpaca-core/pull/123))
+- enable clippy pedantic/nursery/cargo lints and missing_docs ([#120](https://github.com/nightwatch-astro/ascom-alpaca-core/pull/120))
+
+### Ci
+
+- move the CLA check to CLA Assistant ([#125](https://github.com/nightwatch-astro/ascom-alpaca-core/pull/125))
+
 ## [0.3.0](https://github.com/nightwatch-astro/ascom-alpaca-core/compare/v0.2.3...v0.3.0) - 2026-07-17
 
 ### Bug Fixes
